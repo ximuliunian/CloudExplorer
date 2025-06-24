@@ -212,7 +212,6 @@ const formattedJsonPreview = computed(() => {
     if (formData.description && formData.description.trim()) {
         dataToExport.description = formData.description
             .split('\n')
-            .filter(line => line.trim() !== '')
     }
 
     return JSON.stringify(dataToExport, null, 2)
