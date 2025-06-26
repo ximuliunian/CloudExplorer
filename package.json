@@ -1,6 +1,6 @@
 {
   "name": "cloud-explorer",
-  "version": "2025.6.2",
+  "version": "2025.6.3",
   "private": true,
   "type": "module",
   "scripts": {

@@ -8,6 +8,14 @@ export function getUpdateTimeFile() {
     })
 }
 
+// 获取免责声明文件
+export function getDisclaimerFile() {
+    return request({
+        url: `/disclaimer.md`,
+        method: 'get'
+    })
+}
+
 // 获取普通文件
 export function getFile(fileName: string) {
     return request({

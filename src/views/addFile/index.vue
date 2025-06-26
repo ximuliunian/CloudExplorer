@@ -104,10 +104,16 @@
                                 </button>
                             </div>
 
-                            <button class="add-content-btn" @click="addContent(fileUrlIndex)">
-                                <Icon icon="icon-sys-add" size="16" />
-                                <span>添加链接</span>
-                            </button>
+                            <div class="group-footer">
+                                <button class="add-content-btn" @click="addContent(fileUrlIndex)">
+                                    <Icon icon="icon-sys-add" size="16" />
+                                    <span>添加链接</span>
+                                </button>
+                                <button class="add-group-below-btn" @click="insertFileUrlAfter(fileUrlIndex)">
+                                    <Icon icon="icon-sys-add" size="16" />
+                                    <span>在此下方添加文件组</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -129,6 +135,10 @@
                     <button class="copy-btn" @click="copyToClipboard">
                         <Icon icon="icon-sys-copy" size="16" />
                         <span>复制JSON</span>
+                    </button>
+                    <button class="download-btn" @click="downloadJson" :disabled="!isFormValid">
+                        <Icon icon="icon-sys-download" size="18" />
+                        <span>下载JSON</span>
                     </button>
                 </div>
             </div>
@@ -219,13 +229,24 @@ const formattedJsonPreview = computed(() => {
 
 // 方法：添加文件URL组
 const addFileUrl = () => {
-    formData.file_url.push({
+    formData.file_url.unshift({
         title: '',
         content: [{
             name: '',
             url: ''
         }]
     })
+}
+
+// 方法：在指定索引后插入文件URL组
+const insertFileUrlAfter = (index: number) => {
+    formData.file_url.splice(index + 1, 0, {
+        title: '',
+        content: [{
+            name: '',
+            url: ''
+        }]
+    });
 }
 
 // 方法：移除文件URL组
@@ -325,11 +346,6 @@ const copyToClipboard = () => {
 
     notification.success("JSON已复制到剪贴板！")
 }
-
-// 组件挂载时初始化
-onMounted(() => {
-    // 初始化代码（如果需要）
-});
 </script>
 
 <style scoped>
@@ -394,8 +410,50 @@ onMounted(() => {
 }
 
 .download-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
+}
+
+/* 新增样式 */
+.group-footer {
+    border-top: 1px dashed #e2e8f0;
+    display: flex;
+}
+
+.add-group-below-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background-color: #dbeafe;
+    color: #3b82f6;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 10px;
+    margin-left: 10px;
+    transition: background-color 0.2s;
+}
+
+.add-group-below-btn:hover {
+    background-color: #bfdbfe;
+}
+
+
+.file-url-container>.add-btn {
+    margin-bottom: 16px;
 }
 
 .download-btn:hover:not(:disabled) {

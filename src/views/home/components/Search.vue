@@ -165,6 +165,7 @@ const handleSecretSearch = (md5: string) => {
 
 // 选择建议
 const selectSuggestion = (item: SearchList) => {
+    clearSearch()
     router.push({ name: 'home', params: { urlParams: item.path.split('/') } })
 };
 
@@ -181,6 +182,7 @@ const clearSearch = () => {
     searchQuery.value = '';
     suggestions.value = [];
     searching.value = false;
+    isFocused.value = false;
 
     // 清除后保持焦点
     if (searchInput.value) {
