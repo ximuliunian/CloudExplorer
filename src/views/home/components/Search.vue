@@ -44,7 +44,7 @@
                             <div class="item-details">
                                 <div class="name-row">
                                     <span class="item-name" v-html="highlightMatch(item.name, searchQuery)"></span>
-                                    <Icon icon="icon-sys-lock" size="16" class="lock-icon" />
+                                    <Icon icon="icon-sys-lock" size="16" class="lock-icon" v-if="item.is_secret" />
                                 </div>
                                 <span class="item-path">{{ item.path }}</span>
                             </div>
