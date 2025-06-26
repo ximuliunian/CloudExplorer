@@ -263,6 +263,8 @@ onMounted(async () => {
 const handleSecretPath = (md5: string) => {
     getPathByName(md5).then(resp => {
         const data = resp.data as PathTree;
+        handlePathChange(HandleRouter.getUrlParams())
+        if (!data) return;
 
         virtualRoot.value = {
             name: '所有位置',

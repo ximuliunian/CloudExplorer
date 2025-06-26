@@ -12,6 +12,7 @@
 
         <DisplayIndex v-else />
     </div>
+    <DisclaimerDialog />
 </template>
 
 <script setup lang="ts">
@@ -23,6 +24,7 @@ import useHandleRouter from '@/hooks/handle/HandleRouter';
 import { useFileInfoStore } from '@/stores/FileInfoStore';
 import HandleRouter from '@/hooks/handle/HandleRouter';
 import DisplayIndex from '@/views/display/displayIndex.vue';
+import DisclaimerDialog from '@/components/DisclaimerDialog.vue';
 
 // 加载动画开关
 let loadingFlag = ref(false);

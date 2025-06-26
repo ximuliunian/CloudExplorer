@@ -12,6 +12,7 @@ export function getUpdateTimeFile() {
 export function getDisclaimerFile() {
     return request({
         url: `/disclaimer.md`,
+        baseURL:'/',
         method: 'get'
     })
 }
