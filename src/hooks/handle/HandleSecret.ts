@@ -81,25 +81,27 @@ const init = () => {
         }
 
         // 判断秘籍是否正确
-        const tempMd5 = Md5Util.compute(`${updateData.updateTime}#${secret}`)
-        const isChecked = updateData.updateId === tempMd5
+        const updateId = Md5Util.compute(`${updateData.updateTime}#${secret}`)
+        const isChecked = updateData.updateId === updateId
         checked.checkResult = isChecked;    // 存储验证结果
         checked.isChecked = true;   // 设置状态为已验证
         checkCallbackList.forEach(callback => callback(isChecked))
         if (!isChecked) return;
 
         // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
-        checked.md5 = Md5Util.compute(`${updateData.updateId}#${secret}`);
-        checkSuccessCallbackList.forEach(callback => callback(tempMd5))
+        const resultMd5 = Md5Util.compute(`${updateData.updateId}#${secret}`)
+        checked.md5 = resultMd5;
+        checkSuccessCallbackList.forEach(callback => callback(resultMd5))
     })
 }
 
 // 手动验证秘籍
 const checkSecret = (secret: string) => {
-    const tempMd5 = Md5Util.compute(`${updateData.updateTime}#${secret}`)
-    if (updateData.updateId !== tempMd5) return;
-    CookieUtil.setCookie('secret', secret, 30)
-    checkSuccessCallbackList.forEach(callback => callback(Md5Util.compute(`${updateData.updateId}#${secret}`)))
+    const key = Md5Util.compute(`${updateData.updateTime}#${secret}`)
+    const updateId = Md5Util.compute(`${updateData.updateTime}#${key}`)
+    if (updateData.updateId !== updateId) return;
+    CookieUtil.setCookie('secret', key, 30)
+    checkSuccessCallbackList.forEach(callback => callback(Md5Util.compute(`${updateData.updateId}#${key}`)))
 }
 
 export default {
