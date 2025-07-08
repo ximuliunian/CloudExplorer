@@ -19,24 +19,26 @@ gutf.file_name = "update_time.json";
 gutf.init = () => {
     // 准备内容数据
     const time = new Date().getTime()
+    const key = Md5Util.compute(`${time}#${secretKey}`)
     let utd: UpdateTimeData = {
-        updateId: Md5Util.compute(`${time}#${secretKey}`),  // 修改为process.env
+        updateId: Md5Util.compute(`${time}#${key}`),
         updateTime: time,
     }
-    console.log(`KEY：${time}#${secretKey}`);  // 修改为process.env
+    console.log(`KEY：${time}#${secretKey}`);
     writeFile(apiDir.root, gutf.file_name, utd)
 }
 
 // 获取文件路径值
 gutf.getMd5 = () => {
     const filePath = path.resolve(apiDir.root, gutf.file_name);
-    const fileContent = fs.readFileSync(filePath, "utf8");
+    const fileContent = JSON.parse(fs.readFileSync(filePath, "utf8")) as UpdateTimeData;
 
     /*
      * 通过设置的密钥在加上通过时间戳和密钥生成的MD5值生成的MD5密钥作为加密文件夹名
      * 这样在前端判断只有密钥输入正确那么才会得到加密文件夹名
      */
-    return Md5Util.compute(`${(JSON.parse(fileContent) as UpdateTimeData).updateId}#${secretKey}`);
+    const key = Md5Util.compute(`${fileContent.updateTime}#${secretKey}`)
+    return Md5Util.compute(`${fileContent.updateId}#${key}`)
 };
 
 export default gutf;
