@@ -37,21 +37,27 @@ const buildPathTree = (is_all: boolean) => {
                 if (!data) break;  // 数据不存在则跳过
                 if (!is_all && data.is_secret) break;  // 数据为保密且查询非保密内容则跳过
 
+                const fileType = data.type ?? 'file'
+
                 // 文件入栈
                 stackSpace[stackSpace.length - 1].files.push({
                     name: data.title,
-                    json_name: spiltPathName,
+                    type: fileType,
+                    json_name: fileType === 'file' ? spiltPathName : data.url as string,
                     ...(is_all && { is_secret: data.is_secret }),
                 } satisfies FileDetail);
 
                 // 添加搜索路径
                 searchPath.push({
                     name: data.title,
-                    path: `${nowDir.join("/")}${nowDir.length > 0 ? '/' : ''}${data.title}.f`,
-                    type: "file",
+                    path: fileType === 'file' ? `${nowDir.join("/")}${nowDir.length > 0 ? '/' : ''}${data.title}.f` : data.url as string,
+                    type: fileType,
                     json_name: spiltPathName,
                     ...(is_all && { is_secret: data.is_secret }),
                 })
+
+                // 当为 url 时，不写入文件
+                if (fileType === 'url') break;
 
                 /*
                  * 写入文件逻辑：

@@ -8,6 +8,7 @@ export default interface PathTree {
 // 文件详情
 export interface FileDetail {
     name: string;  // 文件名
+    type: 'file' | 'url';  // 类型
     is_secret?: boolean;  // 是否为保密内容
-    json_name: string;  // JSON 文件名
+    json_name: string;  // JSON 文件名（当 type 为 url 时内容为 URL）
 }

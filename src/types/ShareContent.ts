@@ -1,11 +1,13 @@
 // 分享内容
 export default interface ShareContent {
     is_secret: boolean;  // 是否保密
+    type: 'file' | 'url';  // 类型
     title: string;  // 标题
-    summary?: string;    // 简介
     cover?: string;  // 图标
-    file_url: FileUrl[];    // 文件下载链接
+    summary?: string;    // 简介
     description?: string[];   // 介绍
+    file_url?: FileUrl[];    // 文件下载链接 - 仅在 type 为 file 时有效
+    url?: string;  // 具体链接 - 仅在 type 为 url 时有效
 }
 
 // 链接列表

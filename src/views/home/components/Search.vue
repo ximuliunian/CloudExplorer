@@ -165,8 +165,17 @@ const handleSecretSearch = (md5: string) => {
 
 // 选择建议
 const selectSuggestion = (item: SearchList) => {
-    clearSearch()
-    router.push({ name: 'home', params: { urlParams: item.path.split('/') } })
+    switch (item.type) {
+        case 'dir':
+        case 'file':
+            clearSearch()
+            router.push({ name: 'home', params: { urlParams: item.path.split('/') } })
+            break;
+
+        case 'url':
+            window.open(item.path);
+            break;
+    }
 };
 
 // 高亮匹配文本

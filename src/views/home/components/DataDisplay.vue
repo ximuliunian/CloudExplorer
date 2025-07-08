@@ -37,7 +37,7 @@
                                 @click="openFolder(folder)">
                                 <td class="name-col">
                                     <div class="item-name">
-                                        <Icon icon="icon-sys-folder" size="25" />
+                                        <Icon :icon="getContentIcon('dir')" size="25" />
                                         <span>{{ folder.name }}</span>
                                     </div>
                                 </td>
@@ -48,7 +48,7 @@
                                 :class="{ 'secret-file': file.is_secret }" @click="openFile(file)">
                                 <td class="name-col">
                                     <div class="item-name">
-                                        <Icon icon="icon-sys-file" size="25" />
+                                        <Icon :icon="getContentIcon(file.type)" size="25" />
                                         <span>{{ file.name }}</span>
                                         <Icon icon="icon-sys-lock" v-if="file.is_secret" size="14" class="lock-icon" />
                                     </div>
@@ -64,7 +64,7 @@
                 <div v-for="folder in currentFolders" :key="'folder-' + folder.name" class="folder-tile"
                     @click="openFolder(folder)">
                     <div class="tile-content">
-                        <Icon icon="icon-sys-folder" size="48" />
+                        <Icon :icon="getContentIcon('dir')" size="48" />
                         <div class="tile-name">{{ folder.name }}</div>
                     </div>
                 </div>
@@ -72,7 +72,7 @@
                 <div v-for="file in currentFiles" :key="'file-' + file.name" class="file-tile"
                     :class="{ 'secret-file': file.is_secret }" @click="openFile(file)">
                     <div class="tile-content">
-                        <Icon icon="icon-sys-file" size="48" />
+                        <Icon :icon="getContentIcon(file.type)" size="48" />
                         <div class="tile-name">
                             {{ file.name }}
                             <Icon icon="icon-sys-lock" v-if="file.is_secret" size="14" class="lock-icon" />
@@ -98,7 +98,11 @@
             </div>
             <div class="status-item">
                 <Icon icon="icon-sys-file" size="14" />
-                <span>{{ currentFiles.length }} 个文件</span>
+                <span>{{currentFiles.filter(item => item.type === 'file').length}} 个文件</span>
+            </div>
+            <div class="status-item">
+                <Icon icon="icon-sys-url" size="14" />
+                <span>{{currentFiles.filter(item => item.type === 'url').length}} 个链接</span>
             </div>
         </div>
     </div>
@@ -167,13 +171,35 @@ const openFolder = (folder: PathTree) => {
 
 // 打开文件
 const openFile = (file: FileDetail) => {
-    router.push({
-        name: 'home',
-        params: { urlParams: [...handleBreadcrumb(), `${file.name}.f`] }
-    });
+    switch (file.type) {
+        case 'file':
+            // 构建新的路由参数
+            const newUrlParams = [...handleBreadcrumb(), `${file.name}.f`];
+            // 添加时间戳作为查询参数
+            const timestamp = Date.now();
 
-    fileInfoStore.setFileDetails(HandleRouter.getUrlParams(), file);
+            router.push({
+                name: 'home',
+                params: { urlParams: newUrlParams },
+                query: { timestamp: timestamp.toString() }
+            });
+            break;
+
+        case 'url':
+            window.open(file.json_name);
+            break;
+    }
 };
+
+// 获取内容图标
+const getContentIcon = (type: string): string => {
+    switch (type) {
+        case 'file': return 'icon-sys-file';
+        case 'dir': return 'icon-sys-folder';
+        case 'url': return 'icon-sys-url';
+        default: return 'icon-sys-unknown';
+    }
+}
 
 // 处理面包屑导航路径
 const handleBreadcrumb = () => {

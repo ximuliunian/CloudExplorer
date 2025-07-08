@@ -216,6 +216,7 @@ import HandleSecret from '@/hooks/handle/HandleSecret';
 import { useRouter } from 'vue-router';
 import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import Icon from '@/components/Icon.vue';
+import HandleRouter from '@/hooks/handle/HandleRouter';
 
 // 视图模式
 const viewMode = ref('cards'); // 'cards' 或 'list'
@@ -282,7 +283,8 @@ const toggleViewMode = () => {
 
 // 返回上一级
 const goBack = () => {
-    router.go(-1);
+    const path = HandleRouter.getUrlParams()
+    router.push({ name: 'home', params: { urlParams: [...path] } });
 };
 
 // 检查窗口大小
@@ -310,7 +312,7 @@ onMounted(async () => {
         viewMode.value = 'list';
     }
     // 桌面设备：如果只有一个分组且内容少于4个，默认使用列表视图
-    else if (content.value?.file_url.length === 1 && content.value?.file_url[0].content.length <= 4) {
+    else if (content.value?.file_url?.length === 1 && content.value?.file_url[0].content.length <= 4) {
         viewMode.value = 'list';
     }
 });
