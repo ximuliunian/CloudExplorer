@@ -100,7 +100,7 @@ const checkSecret = (secret: string) => {
     const key = Md5Util.compute(`${updateData.updateTime}#${secret}`)
     const updateId = Md5Util.compute(`${updateData.updateTime}#${key}`)
     if (updateData.updateId !== updateId) return;
-    CookieUtil.setCookie('secret', key, 30)
+    CookieUtil.setCookie('secret', key, Number(import.meta.env.SECRET_EXPIRES))
     checkSuccessCallbackList.forEach(callback => callback(Md5Util.compute(`${updateData.updateId}#${key}`)))
 }
 

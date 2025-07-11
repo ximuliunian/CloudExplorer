@@ -17,113 +17,32 @@
             <input type="file" ref="fileInput" accept=".json" @change="parseJsonFile" style="display: none" />
         </div>
 
-        <div class="form-container">
-            <div class="form-section">
-                <div class="form-group">
-                    <label class="required">标题</label>
-                    <input type="text" v-model="formData.title" placeholder="输入标题" />
-                </div>
+        <div class="file-type">
+            <button :class="{ 'file-type-check': currentType === 'file' }" @click="currentType = 'file'">
+                <Icon icon="icon-sys-file" size="18" />
+                <span>站内文件</span>
+            </button>
 
-                <div class="form-group">
-                    <label>简介</label>
-                    <textarea v-model="formData.summary" placeholder="输入简介" rows="3"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>封面URL</label>
-                    <div class="cover-preview-container">
-                        <input type="text" v-model="formData.cover" placeholder="输入封面图片URL" />
-                        <div class="cover-preview" v-if="formData.cover">
-                            <img :src="formData.cover" alt="封面预览" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="checkbox-container">
-                        <input type="checkbox" id="isSecret" v-model="formData.is_secret" />
-                        <label for="isSecret">保密内容</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="section-header">
-                    <h3>
-                        <Icon icon="icon-sys-content" size="20" /> 介绍内容 (Markdown格式)
-                    </h3>
-                    <div class="section-tip">注：在JSON中将按行分割为数组</div>
-                </div>
-                <div class="form-group">
-                    <textarea v-model="formData.description" placeholder="输入Markdown格式的介绍内容..." rows="8"
-                        class="md-textarea"></textarea>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="section-header">
-                    <h3>
-                        <Icon icon="icon-sys-link" size="20" /> 文件下载链接
-                    </h3>
-                    <button class="add-btn" @click="addFileUrl">
-                        <Icon icon="icon-sys-add" size="16" />
-                        <span>添加文件组</span>
-                    </button>
-                </div>
-
-                <div class="file-url-container">
-                    <div v-for="(fileUrl, fileUrlIndex) in formData.file_url" :key="fileUrlIndex"
-                        class="file-url-group">
-                        <div class="file-url-header">
-                            <div class="form-group">
-                                <label class="required">文件组标题</label>
-                                <input type="text" v-model="fileUrl.title" placeholder="输入文件组标题" />
-                            </div>
-                            <button class="remove-btn" @click="removeFileUrl(fileUrlIndex)">
-                                <Icon icon="icon-sys-delete" size="16" />
-                                <span>删除组</span>
-                            </button>
-                        </div>
-
-                        <div class="content-items">
-                            <div class="content-item" v-for="(content, contentIndex) in fileUrl.content"
-                                :key="contentIndex">
-                                <div class="content-inputs">
-                                    <div class="form-group">
-                                        <label class="required">链接名称</label>
-                                        <input type="text" v-model="content.name" placeholder="输入链接名称" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="required">链接地址</label>
-                                        <input type="text" v-model="content.url" placeholder="输入链接地址" />
-                                    </div>
-                                </div>
-                                <button class="remove-btn" @click="removeContent(fileUrlIndex, contentIndex)">
-                                    <Icon icon="icon-sys-delete" size="16" />
-                                    <span>删除</span>
-                                </button>
-                            </div>
-
-                            <div class="group-footer">
-                                <button class="add-content-btn" @click="addContent(fileUrlIndex)">
-                                    <Icon icon="icon-sys-add" size="16" />
-                                    <span>添加链接</span>
-                                </button>
-                                <button class="add-group-below-btn" @click="insertFileUrlAfter(fileUrlIndex)">
-                                    <Icon icon="icon-sys-add" size="16" />
-                                    <span>在此下方添加文件组</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="formData.file_url.length === 0" class="empty-state">
-                        <Icon icon="icon-sys-folder" size="48" />
-                        <p>暂无文件组，请点击上方"添加文件组"按钮</p>
-                    </div>
-                </div>
-            </div>
+            <button :class="{ 'file-type-check': currentType === 'url' }" @click="currentType = 'url'">
+                <Icon icon="icon-sys-url" size="18" />
+                <span>URL</span>
+            </button>
         </div>
+
+        <!-- 动态渲染表单 -->
+        <FileTypeForm
+            v-if="currentType === 'file'"
+            ref="fileForm"
+            v-model:formData="fileFormData"
+            @update:valid="updateFileFormValid"
+        />
+        
+        <UrlTypeForm 
+            v-else
+            ref="urlForm"
+            v-model:formData="urlFormData"
+            @update:valid="updateUrlFormValid"
+        />
 
         <div class="json-preview-container">
             <div class="preview-header">
@@ -151,204 +70,191 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import Icon from '@/components/Icon.vue';
 import type ShareContent from '@/types/ShareContent';
 import { notification } from '@/utils/notify';
+import UrlTypeForm from './components/UrlTypeForm.vue';
+import FileTypeForm from './components/FileTypeForm.vue';
 
-// 定义表单数据类型
-interface FormData {
-    is_secret: boolean;
-    title: string;
-    summary: string;
-    cover: string;
-    file_url: Array<{
-        title: string;
-        content: Array<{
-            name: string;
-            url: string;
-        }>;
-    }>;
-    description: string; // 字符串类型
-}
+// 当前选择的表单类型
+const currentType = ref<'file' | 'url'>('file');
 
-// 表单数据
-const formData = reactive<FormData>({
+// 文件类型表单数据
+const fileFormData = reactive({
     is_secret: false,
     title: '',
+    type: 'file' as const,
     summary: '',
     cover: '',
-    file_url: [],
+    file_url: [] as Array<{
+        title: string;
+        content: Array<{ name: string; url: string }>;
+    }>,
     description: ''
-})
+});
+
+// URL类型表单数据
+const urlFormData = reactive({
+    is_secret: false,
+    title: '',
+    type: 'url' as const,
+    url: ''
+});
+
+// 表单验证状态
+const isFileFormValid = ref(false);
+const isUrlFormValid = ref(false);
+const isFormValid = computed(() => 
+    currentType.value === 'file' ? isFileFormValid.value : isUrlFormValid.value
+);
+
+// 更新表单验证状态
+const updateFileFormValid = (valid: boolean) => {
+    isFileFormValid.value = valid;
+};
+const updateUrlFormValid = (valid: boolean) => {
+    isUrlFormValid.value = valid;
+};
 
 // 响应式变量
-const fileInput = ref<HTMLInputElement | null>(null)
-
-// 计算属性：验证表单
-const isFormValid = computed(() => {
-    if (!formData.title.trim()) return false
-
-    if (formData.file_url.length === 0) return false
-
-    for (const fileUrl of formData.file_url) {
-        if (!fileUrl.title.trim()) return false
-
-        if (fileUrl.content.length === 0) return false
-
-        for (const content of fileUrl.content) {
-            if (!content.name.trim() || !content.url.trim()) return false
-        }
-    }
-
-    return true
-})
+const fileInput = ref<HTMLInputElement | null>(null);
+const fileForm = ref<InstanceType<typeof FileTypeForm> | null>(null);
+const urlForm = ref<InstanceType<typeof UrlTypeForm> | null>(null);
 
 // 计算属性：格式化JSON预览
 const formattedJsonPreview = computed(() => {
-    const dataToExport: any = {
-        is_secret: formData.is_secret,
-        title: formData.title,
-        file_url: formData.file_url.map(fu => ({
-            title: fu.title,
-            content: fu.content.map(c => ({ name: c.name, url: c.url }))
-        }))
+    if (currentType.value === 'file') {
+        const dataToExport: any = {
+            is_secret: fileFormData.is_secret,
+            title: fileFormData.title,
+            type: 'file',
+            file_url: fileFormData.file_url.map(fu => ({
+                title: fu.title,
+                content: fu.content.map(c => ({ name: c.name, url: c.url }))
+            }))
+        };
+
+        if (fileFormData.summary) dataToExport.summary = fileFormData.summary;
+        if (fileFormData.cover) dataToExport.cover = fileFormData.cover;
+        if (fileFormData.description) {
+            dataToExport.description = fileFormData.description.split('\n');
+        }
+
+        return JSON.stringify(dataToExport, null, 2);
+    } else {
+        return JSON.stringify({
+            is_secret: urlFormData.is_secret,
+            title: urlFormData.title,
+            type: 'url',
+            url: urlFormData.url
+        }, null, 2);
     }
-
-    if (formData.summary) dataToExport.summary = formData.summary
-    if (formData.cover) dataToExport.cover = formData.cover
-
-    // 处理描述内容：按行分割为数组
-    if (formData.description && formData.description.trim()) {
-        dataToExport.description = formData.description
-            .split('\n')
-    }
-
-    return JSON.stringify(dataToExport, null, 2)
-})
-
-// 方法：添加文件URL组
-const addFileUrl = () => {
-    formData.file_url.unshift({
-        title: '',
-        content: [{
-            name: '',
-            url: ''
-        }]
-    })
-}
-
-// 方法：在指定索引后插入文件URL组
-const insertFileUrlAfter = (index: number) => {
-    formData.file_url.splice(index + 1, 0, {
-        title: '',
-        content: [{
-            name: '',
-            url: ''
-        }]
-    });
-}
-
-// 方法：移除文件URL组
-const removeFileUrl = (index: number) => {
-    formData.file_url.splice(index, 1)
-}
-
-// 方法：添加内容链接
-const addContent = (fileUrlIndex: number) => {
-    formData.file_url[fileUrlIndex].content.push({
-        name: '',
-        url: ''
-    })
-}
-
-// 方法：移除内容链接
-const removeContent = (fileUrlIndex: number, contentIndex: number) => {
-    formData.file_url[fileUrlIndex].content.splice(contentIndex, 1)
-}
+});
 
 // 方法：触发文件上传
 const handleUpload = () => {
     if (fileInput.value) {
-        fileInput.value.value = ''
-        fileInput.value.click()
+        fileInput.value.value = '';
+        fileInput.value.click();
     }
-}
+};
 
 // 方法：解析JSON文件
 const parseJsonFile = (event: Event) => {
-    const input = event.target as HTMLInputElement
-    if (!input.files || input.files.length === 0) return
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
 
-    const file = input.files[0]
-    const reader = new FileReader()
+    const file = input.files[0];
+    const reader = new FileReader();
 
     reader.onload = (e) => {
         try {
-            const content = e.target?.result as string
-            const jsonData = JSON.parse(content) as ShareContent
+            const content = e.target?.result as string;
+            const jsonData = JSON.parse(content) as ShareContent;
 
-            // 重置表单数据
-            Object.assign(formData, {
-                is_secret: jsonData.is_secret || false,
-                title: jsonData.title || '',
-                summary: jsonData.summary || '',
-                cover: jsonData.cover || '',
-                file_url: []
-            })
-
-            // 处理描述内容（数组转字符串）
-            if (jsonData.description) {
-                formData.description = Array.isArray(jsonData.description)
-                    ? jsonData.description.join('\n')
-                    : jsonData.description;
+            // 自动识别类型：如果包含 file_url 则识别为文件类型
+            if (jsonData.file_url) {
+                currentType.value = 'file';
+                Object.assign(fileFormData, {
+                    is_secret: jsonData.is_secret || false,
+                    title: jsonData.title || '',
+                    summary: jsonData.summary || '',
+                    cover: jsonData.cover || '',
+                    file_url: jsonData.file_url?.map(fu => ({
+                        title: fu.title || '',
+                        content: fu.content?.map(c => ({
+                            name: c.name || '',
+                            url: c.url || ''
+                        })) || []
+                    })) || [],
+                    description: Array.isArray(jsonData.description) 
+                        ? jsonData.description.join('\n') 
+                        : jsonData.description || ''
+                });
+            } 
+            // 如果包含 url 字段则识别为 URL 类型
+            else if (jsonData.url) {
+                currentType.value = 'url';
+                Object.assign(urlFormData, {
+                    is_secret: jsonData.is_secret || false,
+                    title: jsonData.title || '',
+                    url: jsonData.url || ''
+                });
             }
-
-            // 处理文件URL
-            if (jsonData.file_url && jsonData.file_url.length > 0) {
-                formData.file_url = jsonData.file_url.map(fu => ({
-                    title: fu.title || '',
-                    content: fu.content ? fu.content.map(c => ({
-                        name: c.name || '',
-                        url: c.url || ''
-                    })) : []
-                }))
+            // 如果都不包含，默认使用文件类型
+            else {
+                currentType.value = 'file';
+                Object.assign(fileFormData, {
+                    is_secret: jsonData.is_secret || false,
+                    title: jsonData.title || '',
+                    summary: jsonData.summary || '',
+                    cover: jsonData.cover || '',
+                    file_url: [],
+                    description: Array.isArray(jsonData.description) 
+                        ? jsonData.description.join('\n') 
+                        : jsonData.description || ''
+                });
             }
         } catch (error) {
-            notification.error("无法解析JSON文件，请检查文件格式是否正确。")
+            notification.error("无法解析JSON文件，请检查文件格式是否正确。");
         }
-    }
+    };
 
-    reader.readAsText(file)
-}
+    reader.readAsText(file);
+};
 
 // 方法：下载JSON
 const downloadJson = () => {
-    const dataStr = formattedJsonPreview.value
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
+    const dataStr = formattedJsonPreview.value;
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `${formData.title.replace(/\s+/g, '_')}.json`
+    const exportFileDefaultName = `${(currentType.value === 'file' 
+        ? fileFormData.title 
+        : urlFormData.title
+    ).replace(/\s+/g, '_')}.json`;
 
-    const linkElement = document.createElement('a')
-    linkElement.setAttribute('href', dataUri)
-    linkElement.setAttribute('download', exportFileDefaultName)
-    linkElement.click()
-}
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+};
 
 // 方法：复制JSON到剪贴板
 const copyToClipboard = () => {
-    const textarea = document.createElement('textarea')
-    textarea.value = formattedJsonPreview.value
-    document.body.appendChild(textarea)
-    textarea.select()
-    document.execCommand('copy')
-    document.body.removeChild(textarea)
+    const textarea = document.createElement('textarea');
+    textarea.value = formattedJsonPreview.value;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
 
-    notification.success("JSON已复制到剪贴板！")
-}
+    notification.success("JSON已复制到剪贴板！");
+};
 </script>
 
 <style scoped>
+/* 保留原有样式，已删除表单部分样式 */
 .json-generator-container {
     max-width: 1000px;
     margin: 0 auto;
@@ -400,6 +306,37 @@ const copyToClipboard = () => {
     font-size: 16px;
 }
 
+.file-type {
+    display: flex;
+    gap: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 30px;
+}
+
+.file-type button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.file-type button:hover {
+    background-color: #e2e8f0;
+}
+
+.file-type-check {
+    background-color: #e2e8f0;
+}
+
 .upload-btn {
     background-color: #e2e8f0;
     color: #334155;
@@ -424,38 +361,6 @@ const copyToClipboard = () => {
     color: white;
 }
 
-/* 新增样式 */
-.group-footer {
-    border-top: 1px dashed #e2e8f0;
-    display: flex;
-}
-
-.add-group-below-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background-color: #dbeafe;
-    color: #3b82f6;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-top: 10px;
-    margin-left: 10px;
-    transition: background-color 0.2s;
-}
-
-.add-group-below-btn:hover {
-    background-color: #bfdbfe;
-}
-
-
-.file-url-container>.add-btn {
-    margin-bottom: 16px;
-}
-
 .download-btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     transform: translateY(-2px);
@@ -465,256 +370,6 @@ const copyToClipboard = () => {
 .download-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-}
-
-.form-container {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-    margin-bottom: 32px;
-}
-
-.form-section {
-    background-color: #f8fafc;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #e2e8f0;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.section-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    font-size: 20px;
-    color: #1e293b;
-}
-
-.section-tip {
-    font-size: 14px;
-    color: #94a3b8;
-    background: #f1f5f9;
-    padding: 6px 12px;
-    border-radius: 6px;
-    margin-top: 5px;
-}
-
-.add-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background-color: #10b981;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.add-btn:hover {
-    background-color: #059669;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #334155;
-}
-
-label.required::after {
-    content: ' *';
-    color: #ef4444;
-}
-
-input,
-textarea {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-input:focus,
-textarea:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-textarea {
-    min-height: 80px;
-    resize: vertical;
-}
-
-.md-textarea {
-    font-family: 'Courier New', monospace;
-    min-height: 150px;
-}
-
-.checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.checkbox-container input {
-    width: auto;
-}
-
-.cover-preview-container {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-}
-
-.cover-preview {
-    width: 100px;
-    height: 100px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cover-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.cover-preview:empty::before {
-    content: "封面预览";
-    color: #94a3b8;
-    font-size: 12px;
-    text-align: center;
-    padding: 10px;
-}
-
-.file-url-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.file-url-group {
-    background-color: white;
-    border-radius: 8px;
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-.file-url-header {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    align-items: center;
-}
-
-.file-url-header .form-group {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-.content-items {
-    padding-left: 20px;
-    border-left: 2px dashed #cbd5e1;
-}
-
-.content-item {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding: 16px;
-    background-color: #f8fafc;
-    border-radius: 8px;
-    position: relative;
-}
-
-.content-inputs {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-
-.remove-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
-    background-color: #fee2e2;
-    color: #ef4444;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
-    height: 42px;
-    align-self: flex-start;
-}
-
-.remove-btn:hover {
-    background-color: #fecaca;
-}
-
-.add-content-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background-color: #dbeafe;
-    color: #3b82f6;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 10px;
-}
-
-.add-content-btn:hover {
-    background-color: #bfdbfe;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 30px 20px;
-    background: #f8fafc;
-    border: 2px dashed #cbd5e1;
-    border-radius: 8px;
-    color: #64748b;
-}
-
-.empty-state p {
-    margin-top: 15px;
-    font-size: 16px;
 }
 
 .json-preview-container {
@@ -791,29 +446,6 @@ textarea {
 
     .actions {
         flex-direction: column;
-    }
-
-    .content-item {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .content-inputs {
-        grid-template-columns: 1fr;
-    }
-
-    .cover-preview-container {
-        flex-direction: column;
-    }
-
-    .cover-preview {
-        width: 100%;
-        height: 150px;
-    }
-
-    .file-url-header {
-        flex-direction: column;
-        align-items: flex-start;
     }
 
     .preview-actions {

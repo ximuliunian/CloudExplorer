@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url))
             },
+        },
+        define: {
+            'import.meta.env.SECRET_EXPIRES': JSON.stringify(env.SECRET_EXPIRES)
         }
     }
 })
