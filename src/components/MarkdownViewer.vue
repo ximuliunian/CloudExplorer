@@ -78,6 +78,8 @@ const parseMarkdown = () => {
     }
 }
 
+
+
 // 监听lines属性变化
 watch(() => props.lines, parseMarkdown, { immediate: true })
 </script>
@@ -92,6 +94,20 @@ watch(() => props.lines, parseMarkdown, { immediate: true })
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     min-height: 200px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* 确保文本可以被选择 */
+.markdown-content,
+.markdown-content * {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    cursor: text;
 }
 
 .loading-indicator {

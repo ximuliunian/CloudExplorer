@@ -1137,10 +1137,27 @@ onBeforeUnmount(() => {
         margin-right: 0;
     }
 
+    /* 图标响应式调整 */
+    .file-section .section-title svg,
+    .file-group .group-title svg,
+    .list-group .group-title svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .file-item .external-icon svg,
+    .file-item .copy-btn svg,
+    .list-item .copy-btn svg {
+        width: 20px !important;
+        height: 20px !important;
+    }
+
     /* 文件项布局优化 */
     .file-item {
         flex-wrap: wrap;
         gap: 8px;
+        position: relative;
+        padding-right: 70px; /* 为右侧图标留出空间 */
     }
 
     .file-info {
@@ -1155,38 +1172,39 @@ onBeforeUnmount(() => {
     .copy-btn {
         position: absolute;
         right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
     }
 
     .external-icon {
-        top: 10px;
-    }
-
-    .copy-btn {
-        bottom: 10px;
+        right: 45px;
     }
 
     .list-item {
         flex-wrap: wrap;
         position: relative;
-        padding: 10px;
+        padding: 15px 10px 15px 50px; /* 为左侧索引和右侧图标留出空间 */
+        align-items: center;
     }
 
     .mobile-item-index {
         position: absolute;
-        top: 10px;
+        top: 50%;
         left: 10px;
+        transform: translateY(-50%);
     }
 
     .item-info {
-        padding-left: 40px;
-        width: 100%;
+        width: calc(100% - 60px); /* 减去图标区域宽度 */
     }
 
     .item-actions {
         position: absolute;
-        top: 10px;
+        top: 50%;
         right: 10px;
+        transform: translateY(-50%);
         flex-direction: row;
+        gap: 15px;
     }
 }
 </style>

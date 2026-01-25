@@ -1,85 +1,33 @@
 <template>
     <div class="file-explorer">
         <!-- 工具栏 -->
-        <div class="toolbar">
-            <div class="nav-controls">
-                <button class="back-button" @click="goBack" v-if="breadcrumb.length > 1" title="返回上一级">
-                    <Icon icon="icon-sys-left" size="20" />
-                </button>
-                <div class="breadcrumb">
-                    <template v-for="(part, index) in breadcrumb" :key="index">
-                        <span class="breadcrumb-item" @click="navigateTo(index)">{{ part }}</span>
-                        <span v-if="index < breadcrumb.length - 1" class="breadcrumb-separator">&gt;</span>
-                    </template>
-                </div>
-            </div>
-            <div class="view-toggle">
-                <button :class="['view-btn', { 'active': viewMode === 'list' }]" @click="viewMode = 'list'"
-                    title="列表视图">
-                    <Icon icon="icon-sys-list" size="20" />
-                </button>
-                <button :class="['view-btn', { 'active': viewMode === 'tiles' }]" @click="viewMode = 'tiles'"
-                    title="平铺视图">
-                    <Icon icon="icon-sys-tiles" size="20" />
-                </button>
-            </div>
-        </div>
+        <Toolbar 
+            :breadcrumb="breadcrumb"
+            :view-mode="viewMode"
+            @update:viewMode="viewMode = $event"
+            @back="goBack"
+            @navigate="navigateTo"
+        />
 
         <!-- 文件浏览器主体 -->
         <div class="explorer-body">
             <!-- 列表视图 -->
-            <div v-if="viewMode === 'list'" class="list-view">
-                <div class="table-container">
-                    <table class="file-table">
-                        <tbody>
-                            <!-- 文件夹 -->
-                            <tr v-for="folder in currentFolders" :key="'folder-' + folder.name" class="folder-item"
-                                @click="openFolder(folder)">
-                                <td class="name-col">
-                                    <div class="item-name">
-                                        <Icon :icon="getContentIcon('dir')" size="25" />
-                                        <span>{{ folder.name }}</span>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- 文件 -->
-                            <tr v-for="file in currentFiles" :key="'file-' + file.name" class="file-item"
-                                :class="{ 'secret-file': file.is_secret }" @click="openFile(file)">
-                                <td class="name-col">
-                                    <div class="item-name">
-                                        <Icon :icon="getContentIcon(file.type)" size="25" />
-                                        <span>{{ file.name }}</span>
-                                        <Icon icon="icon-sys-lock" v-if="file.is_secret" size="14" class="lock-icon" />
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <ListView 
+                v-if="viewMode === 'list'"
+                :folders="currentFolders"
+                :files="currentFiles"
+                @openFolder="openFolder"
+                @openFile="openFile"
+            />
 
             <!-- 平铺视图 -->
-            <div v-else class="tiles-view">
-                <div v-for="folder in currentFolders" :key="'folder-' + folder.name" class="folder-tile"
-                    @click="openFolder(folder)">
-                    <div class="tile-content">
-                        <Icon :icon="getContentIcon('dir')" size="48" />
-                        <div class="tile-name">{{ folder.name }}</div>
-                    </div>
-                </div>
-
-                <div v-for="file in currentFiles" :key="'file-' + file.name" class="file-tile"
-                    :class="{ 'secret-file': file.is_secret }" @click="openFile(file)">
-                    <div class="tile-content">
-                        <Icon :icon="getContentIcon(file.type)" size="48" />
-                        <div class="tile-name">
-                            {{ file.name }}
-                            <Icon icon="icon-sys-lock" v-if="file.is_secret" size="14" class="lock-icon" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <TilesView 
+                v-else
+                :folders="currentFolders"
+                :files="currentFiles"
+                @openFolder="openFolder"
+                @openFile="openFile"
+            />
 
             <!-- 加载状态 -->
             <div v-if="loading" class="loading-overlay">
@@ -91,20 +39,11 @@
         </div>
 
         <!-- 状态栏 -->
-        <div class="status-bar">
-            <div class="status-item">
-                <Icon icon="icon-sys-folder" size="14" />
-                <span>{{ currentFolders.length }} 个文件夹</span>
-            </div>
-            <div class="status-item">
-                <Icon icon="icon-sys-file" size="14" />
-                <span>{{currentFiles.filter(item => item.type === 'file').length}} 个文件</span>
-            </div>
-            <div class="status-item">
-                <Icon icon="icon-sys-url" size="14" />
-                <span>{{currentFiles.filter(item => item.type === 'url').length}} 个链接</span>
-            </div>
-        </div>
+        <StatusBar 
+            :folder-count="currentFolders.length"
+            :file-count="currentFiles.filter(item => item.type === 'file').length"
+            :url-count="currentFiles.filter(item => item.type === 'url').length"
+        />
     </div>
 </template>
 
@@ -119,6 +58,10 @@ import { useFileInfoStore } from '@/stores/FileInfoStore';
 import HandleSecret from '@/hooks/handle/HandleSecret';
 import { notification } from '@/utils/notify';
 import Icon from '@/components/Icon.vue';
+import Toolbar from './subcomponents/Toolbar.vue';
+import ListView from './subcomponents/ListView.vue';
+import TilesView from './subcomponents/TilesView.vue';
+import StatusBar from './subcomponents/StatusBar.vue';
 
 // 路由
 const router = useRouter();
@@ -138,6 +81,7 @@ const fileInfoStore = useFileInfoStore();
 
 // 加载状态
 const loading = ref(false);
+const pathJsonLoaded = ref(false); // 标记path.json是否加载完成
 
 // 虚拟根节点
 const virtualRoot = ref<PathTree>({
@@ -191,23 +135,15 @@ const openFile = (file: FileDetail) => {
     }
 };
 
-// 获取内容图标
-const getContentIcon = (type: string): string => {
-    switch (type) {
-        case 'file': return 'icon-sys-file';
-        case 'dir': return 'icon-sys-folder';
-        case 'url': return 'icon-sys-url';
-        default: return 'icon-sys-unknown';
-    }
-}
+// 获取内容图标 - 已移动到子组件中
 
 // 处理面包屑导航路径
 const handleBreadcrumb = () => {
     return breadcrumb.value.slice(1);
 };
 
-// 加载内容（同步方式）
-const loadContent = () => {
+// 加载内容（异步方式）
+const loadContent = async () => {
     loading.value = true;
 
     try {
@@ -272,6 +208,9 @@ onMounted(async () => {
         files: data.files || []
     };
 
+    pathJsonLoaded.value = true; // 标记path.json加载完成
+    handlePathChange(HandleRouter.getUrlParams()); // 加载完成后处理当前路由
+
     // 注册校验成功回调函数，当密钥被解密成功后，重新加载根目录内容
     HandleSecret.registerCheckSuccessCallback(handleSecretPath)
 
@@ -286,11 +225,12 @@ onMounted(async () => {
 /**
  * 注册回调函数，当密钥被解密后，重新加载根目录内容
  */
-const handleSecretPath = (md5: string) => {
-    getPathByName(md5).then(resp => {
+const handleSecretPath = async (md5: string) => {
+    try {
+        const resp = await getPathByName(md5);
         const data = resp.data as PathTree;
         if (!data) {
-            handlePathChange(HandleRouter.getUrlParams())
+            await handlePathChange(HandleRouter.getUrlParams());
             return;
         }
 
@@ -300,15 +240,51 @@ const handleSecretPath = (md5: string) => {
             files: data.files || []
         };
 
-        handlePathChange(HandleRouter.getUrlParams())
-    })
+        // 加载完秘笈版本path后，立即更新当前文件信息
+        await handlePathChange(HandleRouter.getUrlParams());
+    } catch (error) {
+        console.error('加载秘笈版本path失败:', error);
+        await handlePathChange(HandleRouter.getUrlParams());
+    }
 }
 
 
 // 监听路由变化
-const handlePathChange = (pathList: string[], newPath?: string | undefined, oldPath?: string | undefined) => {
-    loadContent();
+const handlePathChange = async (pathList: string[], newPath?: string | undefined, oldPath?: string | undefined) => {
+    if (!pathJsonLoaded.value) {
+        console.log('path.json 尚未加载完成，等待加载后处理路由');
+        return; // 如果path.json还没加载完成，直接返回，等待加载完成后再处理
+    }
 
+    // 检查是否有有效的密钥，如果有，确保已加载被保护资源路径
+    const md5 = HandleSecret.getMd5();
+    if (md5) {
+        // 如果已有被保护资源路径，则直接处理路由
+        // 如果没有或资源可能不完整，则重新获取
+        try {
+            const resp = await getPathByName(md5);
+            const data = resp.data as PathTree;
+            if (data) {
+                virtualRoot.value = {
+                    name: '所有位置',
+                    children: data.children || [],
+                    files: data.files || []
+                };
+            }
+        } catch (error) {
+            console.error('获取被保护资源路径失败:', error);
+        } finally {
+            // 处理路由变化
+            await processPathChange(pathList, newPath, oldPath);
+        }
+    } else {
+        // 没有密钥，直接处理路由
+        await processPathChange(pathList, newPath, oldPath);
+    }
+};
+
+// 处理路由变化的实际逻辑
+const processPathChange = async (pathList: string[], newPath?: string | undefined, oldPath?: string | undefined) => {
     if (!pathList) return;
 
     let fileName = null;
@@ -318,12 +294,13 @@ const handlePathChange = (pathList: string[], newPath?: string | undefined, oldP
     }
 
     breadcrumb.value = [breadcrumb.value[0], ...pathList]
-    loadContent();
+    await loadContent(); // 等待loadContent完成，确保currentFiles已更新
 
     // 如果有文件名，打开文件
     if (fileName) {
         const file = currentFiles.value.find(f => f.name === fileName.replace('.f', ''));
         if (file) {
+            // 从新的path中获取文件信息，包含完整的is_secret标记
             fileInfoStore.setFileDetails(HandleRouter.getUrlParams(), file);
             router.resolve({
                 name: 'home',
@@ -349,238 +326,11 @@ const handlePathChange = (pathList: string[], newPath?: string | undefined, oldP
     flex-direction: column;
 }
 
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.nav-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-}
-
-.back-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-}
-
-.back-button:hover {
-    background-color: #f1f5f9;
-    border-color: #cbd5e1;
-}
-
-.breadcrumb {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #334155;
-    flex-wrap: wrap;
-    min-width: 0;
-    line-height: 1.5;
-}
-
-.breadcrumb-item {
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-
-.breadcrumb-item:hover {
-    background-color: #e2e8f0;
-}
-
-.breadcrumb-item:last-child {
-    font-weight: 600;
-    color: #1e293b;
-    cursor: default;
-}
-
-.breadcrumb-item:last-child:hover {
-    background-color: transparent;
-}
-
-.breadcrumb-separator {
-    padding: 0 4px;
-    cursor: default;
-    color: #94a3b8;
-    user-select: none;
-}
-
-.view-toggle {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.view-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.view-btn:hover {
-    background-color: #f1f5f9;
-    border-color: #cbd5e1;
-}
-
-.view-btn.active {
-    background-color: #e0f2fe;
-    border-color: #7dd3fc;
-    color: #0ea5e9;
-}
-
 .explorer-body {
     flex: 1;
     overflow: auto;
     position: relative;
     background-color: #ffffff;
-}
-
-/* 列表视图样式 */
-.list-view {
-    width: 100%;
-    height: 100%;
-}
-
-.table-container {
-    height: 100%;
-    overflow: auto;
-}
-
-.file-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.file-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.name-col {
-    width: 100%;
-}
-
-.folder-item,
-.file-item {
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.folder-item:hover,
-.file-item:hover {
-    background-color: #f8fafc;
-}
-
-.item-name {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.lock-icon {
-    margin-left: 8px;
-}
-
-.secret-file {
-    background-color: #fff5f5;
-}
-
-.secret-file:hover {
-    background-color: #ffebeb;
-}
-
-/* 平铺视图样式 */
-.tiles-view {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 16px;
-    padding: 16px;
-}
-
-.folder-tile,
-.file-tile {
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.2s;
-    height: 140px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-}
-
-.folder-tile:hover,
-.file-tile:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-}
-
-.tile-content {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    height: 100%;
-    justify-content: center;
-}
-
-.tile-name {
-    font-weight: 500;
-    color: #1e293b;
-    word-break: break-all;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 12px;
-    width: 100%;
-    justify-content: center;
-    font-size: 14px;
-}
-
-.lock-icon {
-    margin-left: 4px;
-}
-
-.file-tile.secret-file {
-    background-color: #fff5f5;
-    border-color: #fee2e2;
-}
-
-.file-tile.secret-file:hover {
-    background-color: #ffebeb;
 }
 
 /* 加载状态 */
@@ -625,84 +375,6 @@ const handlePathChange = (pathList: string[], newPath?: string | undefined, oldP
 
     100% {
         transform: rotate(360deg);
-    }
-}
-
-/* 状态栏 */
-.status-bar {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #f8fafc;
-    border-top: 1px solid #e2e8f0;
-    font-size: 12px;
-    color: #64748b;
-}
-
-.status-item {
-    padding: 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-    .toolbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 10px;
-    }
-
-    .nav-controls {
-        width: 100%;
-    }
-
-    .breadcrumb {
-        font-size: 13px;
-    }
-
-    .breadcrumb-item {
-        max-width: 120px;
-        padding: 4px;
-    }
-
-    .tiles-view {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 12px;
-        padding: 12px;
-    }
-
-    .file-table td {
-        padding: 14px 16px;
-    }
-
-    .item-name {
-        gap: 10px;
-    }
-
-    .tile-name {
-        font-size: 13px;
-    }
-}
-
-@media (max-width: 480px) {
-    .breadcrumb-item {
-        max-width: 80px;
-    }
-
-    .tiles-view {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    }
-
-    .tile-content {
-        padding: 12px 8px;
-    }
-
-    .folder-tile,
-    .file-tile {
-        height: 120px;
     }
 }
 </style>
