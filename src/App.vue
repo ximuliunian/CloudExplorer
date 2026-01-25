@@ -59,7 +59,12 @@ async function handleBackImage() {
     // 获取背景图片
     const imgList = await imgApi();
     const size = Math.floor(Math.random() * imgList.data.length)
-    backImage.value = location.origin + imgList.data[size]
+    let imgInfo = imgList.data[size]
+    if (imgInfo.indexOf('http') == -1) {
+        backImage.value = location.origin + imgList.data[size]
+    } else {
+        backImage.value = imgInfo
+    }
 
     // 背景图片加载判断
     const imageLoad = new Image();
