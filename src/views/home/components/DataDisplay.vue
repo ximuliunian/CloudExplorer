@@ -209,6 +209,7 @@ onMounted(async () => {
     };
 
     pathJsonLoaded.value = true; // 标记path.json加载完成
+    loadContent(); // 直接调用loadContent加载内容
     handlePathChange(HandleRouter.getUrlParams()); // 加载完成后处理当前路由
 
     // 注册校验成功回调函数，当密钥被解密成功后，重新加载根目录内容
