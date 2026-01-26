@@ -30,19 +30,10 @@
         </div>
 
         <!-- 动态渲染表单 -->
-        <FileTypeForm
-            v-if="currentType === 'file'"
-            ref="fileForm"
-            v-model:formData="fileFormData"
-            @update:valid="updateFileFormValid"
-        />
-        
-        <UrlTypeForm 
-            v-else
-            ref="urlForm"
-            v-model:formData="urlFormData"
-            @update:valid="updateUrlFormValid"
-        />
+        <FileTypeForm v-if="currentType === 'file'" ref="fileForm" :formData="fileFormData"
+            @update:valid="updateFileFormValid" />
+
+        <UrlTypeForm v-else ref="urlForm" :formData="urlFormData" @update:valid="updateUrlFormValid" />
 
         <div class="json-preview-container">
             <div class="preview-header">
@@ -105,7 +96,7 @@ const urlFormData = reactive({
 // 表单验证状态
 const isFileFormValid = ref(false);
 const isUrlFormValid = ref(false);
-const isFormValid = computed(() => 
+const isFormValid = computed(() =>
     currentType.value === 'file' ? isFileFormValid.value : isUrlFormValid.value
 );
 
@@ -188,11 +179,11 @@ const parseJsonFile = (event: Event) => {
                             url: c.url || ''
                         })) || []
                     })) || [],
-                    description: Array.isArray(jsonData.description) 
-                        ? jsonData.description.join('\n') 
+                    description: Array.isArray(jsonData.description)
+                        ? jsonData.description.join('\n')
                         : jsonData.description || ''
                 });
-            } 
+            }
             // 如果包含 url 字段则识别为 URL 类型
             else if (jsonData.url) {
                 currentType.value = 'url';
@@ -211,8 +202,8 @@ const parseJsonFile = (event: Event) => {
                     summary: jsonData.summary || '',
                     cover: jsonData.cover || '',
                     file_url: [],
-                    description: Array.isArray(jsonData.description) 
-                        ? jsonData.description.join('\n') 
+                    description: Array.isArray(jsonData.description)
+                        ? jsonData.description.join('\n')
                         : jsonData.description || ''
                 });
             }
@@ -229,8 +220,8 @@ const downloadJson = () => {
     const dataStr = formattedJsonPreview.value;
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
-    const exportFileDefaultName = `${(currentType.value === 'file' 
-        ? fileFormData.title 
+    const exportFileDefaultName = `${(currentType.value === 'file'
+        ? fileFormData.title
         : urlFormData.title
     ).replace(/\s+/g, '_')}.json`;
 

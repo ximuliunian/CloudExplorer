@@ -31,14 +31,13 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:formData', 'update:valid']);
+const emit = defineEmits(['update:valid']);
 
 // 表单数据
-const formData = reactive(props.formData);
+const formData = props.formData;
 
 // 监听表单变化
 watch(formData, () => {
-    emit('update:formData', formData);
     validateForm();
 }, { deep: true });
 

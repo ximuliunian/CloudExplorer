@@ -62,7 +62,7 @@ import type SearchList from '@/types/SearchList';
 import HandleSecret from '@/hooks/handle/HandleSecret';
 import { useRouter } from 'vue-router';
 import Icon from '@/components/Icon.vue';
-import { useBaseShowInfoStore } from '@/stores/baseShowInfo';
+import { useBaseShowInfoStore } from '@/stores/BaseShowInfo';
 
 const searchQuery = ref('');    // 搜索查询
 const suggestions = ref<SearchList[]>([]);  // 搜索建议

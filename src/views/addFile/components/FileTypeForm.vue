@@ -67,7 +67,8 @@
                     </div>
 
                     <div class="content-items">
-                        <div class="content-item" v-for="(content, contentIndex) in fileUrl.content" :key="contentIndex">
+                        <div class="content-item" v-for="(content, contentIndex) in fileUrl.content"
+                            :key="contentIndex">
                             <div class="content-inputs">
                                 <div class="form-group">
                                     <label class="required">链接名称</label>
@@ -117,21 +118,20 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['update:formData', 'update:valid']);
+const emit = defineEmits(['update:valid']);
 
 // 表单数据
-const formData = reactive(props.formData);
+const formData = props.formData;
 
 // 监听表单变化
 watch(formData, () => {
-    emit('update:formData', formData);
     validateForm();
 }, { deep: true });
 
 // 验证表单
 const validateForm = () => {
     let valid = true;
-    
+
     if (!formData.title.trim()) valid = false;
 
     if (formData.file_url.length === 0) valid = false;
@@ -145,7 +145,7 @@ const validateForm = () => {
             if (!content.name.trim() || !content.url.trim()) valid = false;
         }
     }
-    
+
     emit('update:valid', valid);
 };
 
