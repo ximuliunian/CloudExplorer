@@ -210,13 +210,14 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import type ShareContent from '@/types/ShareContent';
 import type { FileUrl } from '@/types/ShareContent';
 import { notification } from '@/utils/notify';
-import { useFileInfoStore } from '@/stores/FileInfoStore';
 import { getFile, getSecretFile } from '@/api/filesApi';
 import HandleSecret from '@/hooks/handle/HandleSecret';
 import { useRouter } from 'vue-router';
 import MarkdownViewer from '@/components/MarkdownViewer.vue';
 import Icon from '@/components/Icon.vue';
 import HandleRouter from '@/hooks/handle/HandleRouter';
+import { useBaseShowInfoStore } from '@/stores/BaseShowInfo';
+import type { FileDetail } from '@/types/PathTree';
 
 // 视图模式
 const viewMode = ref('cards'); // 'cards' 或 'list'
@@ -224,7 +225,7 @@ const showIndex = computed(() => (content.value?.file_url?.length ?? 0) > 1);
 const showMobileIndex = ref(false);
 const highlightedGroup = ref<number | null>(null);
 const isMobileView = ref(false);
-const fileInfoStore = useFileInfoStore();    // 文件信息
+const baseShowInfoStore = useBaseShowInfoStore();   // 基础显示信息
 const content = ref<ShareContent>();
 const router = useRouter();  // 路由
 
@@ -241,7 +242,7 @@ const copyLink = (url: string) => {
 const copyGroupLinks = (group: FileUrl) => {
     const links = group.content.map(item => `${item.name}: ${item.url}`).join('\n');
     navigator.clipboard.writeText(links).then(() => {
-        notification.success(`"${group.title}" 的所有链接已复制`);
+        notification.success(`"${content.value?.title}" 的 "${group.title}" 的所有链接已复制`);
     }).catch(err => {
         notification.error('复制失败，请手动复制');
     });
@@ -283,8 +284,7 @@ const toggleViewMode = () => {
 
 // 返回上一级
 const goBack = () => {
-    const path = HandleRouter.getUrlParams()
-    router.push({ name: 'home', params: { urlParams: [...path] } });
+    router.push({ name: 'home', params: { urlParams: [...HandleRouter.getUrlParams()] } });
 };
 
 // 检查窗口大小
@@ -294,7 +294,13 @@ const checkViewport = () => {
 
 // 获取数据内容
 const getContent = () => {
-    const fileDetails = fileInfoStore.fileDetails;
+    const fileDetails: FileDetail = baseShowInfoStore.currentResourceInfo;
+    if (!fileDetails) {
+        notification.error('资源不存在');
+        goBack();
+        return;
+    }
+
     return fileDetails?.is_secret
         ? getSecretFile(fileDetails.json_name, HandleSecret.getMd5())
         : getFile(fileDetails!.json_name)
@@ -302,7 +308,7 @@ const getContent = () => {
 
 // 根据内容自动选择视图模式
 onMounted(async () => {
-    content.value = (await getContent()).data as ShareContent;
+    content.value = (await getContent())?.data as ShareContent;
 
     checkViewport();
     window.addEventListener('resize', checkViewport);
@@ -1157,7 +1163,8 @@ onBeforeUnmount(() => {
         flex-wrap: wrap;
         gap: 8px;
         position: relative;
-        padding-right: 70px; /* 为右侧图标留出空间 */
+        padding-right: 70px;
+        /* 为右侧图标留出空间 */
     }
 
     .file-info {
@@ -1183,7 +1190,8 @@ onBeforeUnmount(() => {
     .list-item {
         flex-wrap: wrap;
         position: relative;
-        padding: 15px 10px 15px 50px; /* 为左侧索引和右侧图标留出空间 */
+        padding: 15px 10px 15px 50px;
+        /* 为左侧索引和右侧图标留出空间 */
         align-items: center;
     }
 
@@ -1195,7 +1203,8 @@ onBeforeUnmount(() => {
     }
 
     .item-info {
-        width: calc(100% - 60px); /* 减去图标区域宽度 */
+        width: calc(100% - 60px);
+        /* 减去图标区域宽度 */
     }
 
     .item-actions {

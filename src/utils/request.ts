@@ -10,10 +10,4 @@ const service = axios.create({
     timeout: 10000
 })
 
-// 请求拦截器
-service.interceptors.request.use(config => config, error => 'error');
-
-// 响应拦截器
-service.interceptors.response.use(resp => resp, error => 'error');
-
 export default service

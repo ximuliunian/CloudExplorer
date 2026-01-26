@@ -9,6 +9,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/home/index.vue')
     },
     {
+        path: '/:urlParams*/:fileName.f',
+        name: 'display',
+        component: () => import('@/views/display/index.vue')
+    },
+    {
         path: '/add',
         name: 'add',
         component: () => import('@/views/addFile/index.vue'),

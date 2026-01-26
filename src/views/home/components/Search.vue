@@ -58,31 +58,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getSearch, getSearchByName } from '@/api/searchApi';
 import type SearchList from '@/types/SearchList';
 import HandleSecret from '@/hooks/handle/HandleSecret';
 import { useRouter } from 'vue-router';
 import Icon from '@/components/Icon.vue';
+import { useBaseShowInfoStore } from '@/stores/baseShowInfo';
 
 const searchQuery = ref('');    // 搜索查询
 const suggestions = ref<SearchList[]>([]);  // 搜索建议
-const searchData = ref<SearchList[]>([]);   // 搜索数据
 const searching = ref(false);   // 搜索状态
 const isFocused = ref(false);   // 输入框焦点状态
 const searchInput = ref<HTMLInputElement | null>(null); // 输入框引用
 let debounceTimer: number | null = null;    // 防抖定时器
 const router = useRouter() // 路由实例
+const baseShowInfoStore = useBaseShowInfoStore();
 
 onMounted(async () => {
-    const res = await getSearch();
-    searchData.value = res.data;
-
     // 初始化输入框引用
     searchInput.value = document.querySelector('#searchInput') as HTMLInputElement;
     // 添加全局点击事件监听器
     document.addEventListener('click', handleDocumentClick);
-
-    HandleSecret.registerCheckSuccessCallback(handleSecretSearch)
 });
 
 // 全局点击事件处理
@@ -137,7 +132,7 @@ const handleInput = () => {
         }
 
         const query = searchQuery.value.toLowerCase();
-        suggestions.value = searchData.value.filter(item =>
+        suggestions.value = baseShowInfoStore.searchInfo.filter(item =>
             item.name.toLowerCase().includes(query)
         );
 
@@ -157,11 +152,6 @@ const handleSearch = () => {
         }
     }
 };
-
-// 触发隐秘文件搜索
-const handleSecretSearch = (md5: string) => {
-    getSearchByName(md5).then(resp => searchData.value = resp.data)
-}
 
 // 选择建议
 const selectSuggestion = (item: SearchList) => {

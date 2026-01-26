@@ -4,13 +4,11 @@
         <div class="mask-layer"></div>
     </div>
     <div class="app-container">
-        <router-view v-slot="{ Component }" v-if="!fileInfoStore.showDetailPage">
+        <router-view v-slot="{ Component }">
             <Transition name="slide-fade" mode="out-in">
                 <component :is="Component" />
             </Transition>
         </router-view>
-
-        <DisplayIndex v-else />
     </div>
     <DisclaimerDialog />
 </template>
@@ -21,36 +19,28 @@ import { onMounted, ref } from 'vue';
 import imgApi from '@/api/imgApi';
 import useHandleSecret from '@/hooks/handle/HandleSecret';
 import useHandleRouter from '@/hooks/handle/HandleRouter';
-import { useFileInfoStore } from '@/stores/FileInfoStore';
-import HandleRouter from '@/hooks/handle/HandleRouter';
-import DisplayIndex from '@/views/display/displayIndex.vue';
 import DisclaimerDialog from '@/components/DisclaimerDialog.vue';
+import HandleSecret from '@/hooks/handle/HandleSecret';
+import { initBaseShowInfo } from './stores/BaseShowInfo';
 
 // 加载动画开关
 let loadingFlag = ref(false);
 // 背景图片
 let backImage = ref('');
-// 文件信息
-const fileInfoStore = useFileInfoStore();
 
 // ---------- 初始化 ----------
 useHandleSecret.init()
 useHandleRouter.init()
 // ---------- 初始化 ----------
 
+
+// 初始化系统展示信息
+initBaseShowInfo();
+HandleSecret.registerCheckSuccessCallback(md5 => initBaseShowInfo(md5))
+
 onMounted(() => {
     handleBackImage();
 });
-
-/**
- * 判断最后一个元素是否以 .f 结尾，如果不是则重置文件详情
- */
-HandleRouter.registerPathChangeCallback((pathList: string[]) => {
-    if (!pathList) return;
-    if (pathList.length === 0 || !pathList[pathList.length - 1].endsWith('.f')) {
-        fileInfoStore.resetFileDetails();
-    }
-})
 
 /**
  * 处理背景图片

@@ -8,12 +8,9 @@ import { onMounted, reactive } from "vue";
 
 // 回调函数类型
 type checkSuccessCallback = (result: string) => void;
-type checkCallback = (checkResult: boolean) => void;
 
 // 密集验证成功后回调函数列表
 const checkSuccessCallbackList = reactive<checkSuccessCallback[]>([])
-// 密集验证后的回调函数列表
-const checkCallbackList = reactive<checkCallback[]>([])
 
 // 更新数据
 let updateData = reactive<UpdateTimeData>({} as UpdateTimeData)
@@ -49,21 +46,7 @@ function registerCheckSuccessCallback(callback: checkSuccessCallback) {
 }
 
 /**
- * 注册校验回调函数
- *
- * @param callback 回调函数
- */
-function registerCheckCallback(callback: checkCallback) {
-    // 注册回调函数
-    checkCallbackList.push(callback)
-    // 如果已经验证过了，则判断一下是否够通过验证
-    if (checked.isChecked) {
-        callback(checked.checkResult)
-    }
-}
-
-/**
- * 初始化
+ * 秘笈 - 初始化
  */
 const init = () => {
     onMounted(async () => {
@@ -76,7 +59,6 @@ const init = () => {
         const secret = CookieUtil.getCookie('secret')
         if (!secret) {
             checked.isChecked = true;
-            checkCallbackList.forEach(callback => callback(false))
             return;
         }
 
@@ -85,7 +67,6 @@ const init = () => {
         const isChecked = updateData.updateId === updateId
         checked.checkResult = isChecked;    // 存储验证结果
         checked.isChecked = true;   // 设置状态为已验证
-        checkCallbackList.forEach(callback => callback(isChecked))
         if (!isChecked) return;
 
         // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
@@ -109,7 +90,6 @@ const checkSecret = (secret: string) => {
 export default {
     init,
     registerCheckSuccessCallback,
-    registerCheckCallback,
     checkSecret,
     getMd5
 }

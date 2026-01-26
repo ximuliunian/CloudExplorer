@@ -37,7 +37,9 @@ watch(
     // 如果地址栏没有更改，则不执行回调函数
     if (newData === oldData) return;
     pathChangeCallbackList.forEach((callback) => {
-      const pathList = getRoute()?.params.urlParams as string[];
+      const pathList: string[] = decodeURIComponent(newData || "")
+        .split("/")
+        .filter((item) => item !== "");
       callback(pathList ? pathList : [], newData, oldData);
     });
   },
@@ -51,13 +53,24 @@ function registerPathChangeCallback(callback: pathChangeType) {
   pathChangeCallbackList.push(callback);
 }
 
-// 获取地址栏参数
-const getUrlParams = () => {
+/**
+ * 获取地址栏路径参数
+ * @returns 参数列表
+ */
+const getUrlParams = (): string[] => {
   return route.value?.params.urlParams as string[];
 };
 
 /**
- * 初始化 函数
+ * 获取地址栏文件名
+ * @returns 文件名
+ */
+const getFileName = (): string => {
+  return route.value?.params.fileName as string;
+}
+
+/**
+ * 路由 - 初始化
  */
 const init = () => {
   onMounted(() => {
@@ -70,4 +83,5 @@ export default {
   init,
   registerPathChangeCallback,
   getUrlParams,
+  getFileName,
 };
