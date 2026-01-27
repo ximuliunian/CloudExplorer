@@ -157,9 +157,19 @@ const handleSearch = () => {
 const selectSuggestion = (item: SearchList) => {
     switch (item.type) {
         case 'dir':
-        case 'file':
             clearSearch()
             router.push({ name: 'home', params: { urlParams: item.path.split('/') } })
+            break;
+
+        case 'file':
+            clearSearch()
+            router.push({
+                name: 'display',
+                params: {
+                    urlParams: item.path.split('/').slice(0, -1),
+                    fileName: item.name
+                }
+            })
             break;
 
         case 'url':
