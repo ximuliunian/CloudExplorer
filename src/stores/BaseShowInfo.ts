@@ -68,6 +68,8 @@ export const useBaseShowInfoStore = defineStore('base_show_info', {
 // 初始化系统展示信息
 export const initBaseShowInfo = (md5?: string) => {
     const baseShowInfoStore = useBaseShowInfoStore();
+    baseShowInfoStore.pathTreeInfoBool = false;
+    baseShowInfoStore.searchInfoBool = false;
     baseShowInfoStore.initPathTreeInfo(md5);
     baseShowInfoStore.initSearchInfo(md5);
 }

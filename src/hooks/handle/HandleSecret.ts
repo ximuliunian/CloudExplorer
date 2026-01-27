@@ -31,6 +31,14 @@ const getMd5 = () => {
 }
 
 /**
+ * 判断是否已经验证过了
+ * @returns 是否已经验证过了
+ */
+const isChecked = () => {
+    return checked.isChecked
+}
+
+/**
  * 注册校验成功回调函数
  * 
  * @param callback 回调函数
@@ -66,13 +74,16 @@ const init = () => {
         const updateId = Md5Util.compute(`${updateData.updateTime}#${secret}`)
         const isChecked = updateData.updateId === updateId
         checked.checkResult = isChecked;    // 存储验证结果
-        checked.isChecked = true;   // 设置状态为已验证
-        if (!isChecked) return;
+        if (!isChecked) {
+            checked.isChecked = true;   // 设置状态为已验证
+            return
+        };
 
         // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
         const resultMd5 = Md5Util.compute(`${updateData.updateId}#${secret}`)
         checked.md5 = resultMd5;
         checkSuccessCallbackList.forEach(callback => callback(resultMd5))
+        checked.isChecked = true;   // 设置状态为已验证
     })
 }
 
@@ -91,6 +102,7 @@ export default {
     init,
     registerCheckSuccessCallback,
     checkSecret,
-    getMd5
+    getMd5,
+    isChecked,
 }
 

@@ -294,6 +294,20 @@ const checkViewport = () => {
 
 // 获取数据内容
 const getContent = async () => {
+    // 等待 HandleSecret.isChecked() 返回有效值
+    if (!HandleSecret.isChecked()) {
+        await new Promise<void>(resolve => {
+            const checkIsChecked = () => {
+                if (HandleSecret.isChecked()) {
+                    resolve();
+                } else {
+                    setTimeout(checkIsChecked, 100);
+                }
+            };
+            checkIsChecked();
+        });
+    }
+
     // 等待 pathTreeInfoBool 完成初始化
     if (!baseShowInfoStore.pathTreeInfoBool) {
         await new Promise<void>(resolve => {
@@ -305,20 +319,6 @@ const getContent = async () => {
                 }
             };
             checkPathTreeInfo();
-        });
-    }
-
-    // 等待 HandleSecret.getMd5() 返回有效值
-    if (!HandleSecret.getMd5()) {
-        await new Promise<void>(resolve => {
-            const checkMd5 = () => {
-                if (HandleSecret.getMd5()) {
-                    resolve();
-                } else {
-                    setTimeout(checkMd5, 100);
-                }
-            };
-            checkMd5();
         });
     }
 
@@ -336,7 +336,11 @@ const getContent = async () => {
 
 // 根据内容自动选择视图模式
 onMounted(async () => {
-    content.value = (await getContent())?.data as ShareContent;
+    content.value = (await getContent())?.data;
+    // 如果地址栏目标变量需要刷新重新获取数据
+    HandleRouter.registerPathChangeCallback(async () => {
+        content.value = (await getContent())?.data;
+    });
 
     checkViewport();
     window.addEventListener('resize', checkViewport);
