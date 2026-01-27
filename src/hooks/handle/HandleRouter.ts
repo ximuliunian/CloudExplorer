@@ -24,8 +24,16 @@ type pathChangeType = (
   oldPath: string | undefined,
 ) => void | Promise<void>; // 回调函数类型
 
+/**
+ * 地址栏更改回调函数信息
+ */
+interface PathChangeInfo {
+  name: string;
+  callback: pathChangeType;
+}
+
 // 地址栏更改回调函数列表
-const pathChangeCallbackList = reactive<pathChangeType[]>([]);
+const pathChangeCallbackList = reactive<PathChangeInfo[]>([]);
 
 /**
  * 注册 地址栏更改 事件函数
@@ -40,7 +48,7 @@ watch(
       const pathList: string[] = decodeURIComponent(newData || "")
         .split("/")
         .filter((item) => item !== "");
-      callback(pathList ? pathList : [], newData, oldData);
+      callback.callback(pathList ? pathList : [], newData, oldData);
     });
   },
 );
@@ -49,8 +57,14 @@ watch(
  * 注册 地址栏更改 回调函数
  * @param callback 回调函数
  */
-function registerPathChangeCallback(callback: pathChangeType) {
-  pathChangeCallbackList.push(callback);
+function registerPathChangeCallback(name: string, callback: pathChangeType) {
+  // 如果存在名称相同的回调函数先删除已存在的回调函数
+  const index = pathChangeCallbackList.findIndex(item => item.name === name)
+  if (index !== -1) {
+    pathChangeCallbackList.splice(index, 1)
+  }
+  // 注册回调函数
+  pathChangeCallbackList.push({ name, callback });
 }
 
 /**

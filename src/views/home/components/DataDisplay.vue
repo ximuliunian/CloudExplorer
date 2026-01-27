@@ -163,8 +163,8 @@ const loadContent = async () => {
 
 // 初始化加载根目录内容
 onMounted(async () => {
-    HandleRouter.registerPathChangeCallback(processPathChange)
-    HandleSecret.registerCheckSuccessCallback(async MD5 => {
+    HandleRouter.registerPathChangeCallback('urlPathChange', processPathChange)
+    HandleSecret.registerCheckSuccessCallback('checkSuccessUpdateDataDisplayView', async MD5 => {
         await baseShowInfoStore.initPathTreeInfo(MD5);
         await loadContent()
     })

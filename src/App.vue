@@ -36,7 +36,7 @@ useHandleRouter.init()
 
 // 初始化系统展示信息
 initBaseShowInfo();
-HandleSecret.registerCheckSuccessCallback(md5 => initBaseShowInfo(md5))
+HandleSecret.registerCheckSuccessCallback('checkSuccessUpdateBaseShowInfo', md5 => initBaseShowInfo(md5))
 
 onMounted(() => {
     handleBackImage();

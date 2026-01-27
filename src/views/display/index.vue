@@ -338,7 +338,8 @@ const getContent = async () => {
 onMounted(async () => {
     content.value = (await getContent())?.data;
     // 如果地址栏目标变量需要刷新重新获取数据
-    HandleRouter.registerPathChangeCallback(async () => {
+    HandleRouter.registerPathChangeCallback('urlFileInfoChange', async pathList => {
+        if (!pathList[pathList.length - 1].endsWith('.f')) return
         content.value = (await getContent())?.data;
     });
 

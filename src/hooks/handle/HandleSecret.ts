@@ -10,7 +10,11 @@ import { onMounted, reactive } from "vue";
 type checkSuccessCallback = (result: string) => void;
 
 // 密集验证成功后回调函数列表
-const checkSuccessCallbackList = reactive<checkSuccessCallback[]>([])
+interface CheckSuccessInfo {
+    name: string,
+    callback: checkSuccessCallback
+}
+const checkSuccessCallbackList = reactive<CheckSuccessInfo[]>([])
 
 // 更新数据
 let updateData = reactive<UpdateTimeData>({} as UpdateTimeData)
@@ -43,9 +47,15 @@ const isChecked = () => {
  * 
  * @param callback 回调函数
  */
-function registerCheckSuccessCallback(callback: checkSuccessCallback) {
+function registerCheckSuccessCallback(name: string, callback: checkSuccessCallback) {
+    // 如果存在名称相同的回调函数先删除已存在的回调函数
+    const index = checkSuccessCallbackList.findIndex(item => item.name === name)
+    if (index !== -1) {
+        checkSuccessCallbackList.splice(index, 1)
+    }
+
     // 注册回调函数
-    checkSuccessCallbackList.push(callback)
+    checkSuccessCallbackList.push({ name, callback })
 
     // 如果已经验证过了，则判断一下是否够通过验证，如果通过验证，则直接调用回调函数
     if (checked.checkResult) {
@@ -82,7 +92,7 @@ const init = () => {
         // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
         const resultMd5 = Md5Util.compute(`${updateData.updateId}#${secret}`)
         checked.md5 = resultMd5;
-        checkSuccessCallbackList.forEach(callback => callback(resultMd5))
+        checkSuccessCallbackList.forEach(callback => callback.callback(resultMd5))
         checked.isChecked = true;   // 设置状态为已验证
     })
 }
@@ -95,7 +105,7 @@ const checkSecret = (secret: string) => {
     CookieUtil.setCookie('secret', key, Number(import.meta.env.SECRET_EXPIRES))
     const md5 = Md5Util.compute(`${updateData.updateId}#${key}`)
     checked.md5 = md5;
-    checkSuccessCallbackList.forEach(callback => callback(md5))
+    checkSuccessCallbackList.forEach(callback => callback.callback(md5))
 }
 
 export default {
