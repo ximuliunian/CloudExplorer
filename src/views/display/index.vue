@@ -293,7 +293,35 @@ const checkViewport = () => {
 };
 
 // 获取数据内容
-const getContent = () => {
+const getContent = async () => {
+    // 等待 pathTreeInfoBool 完成初始化
+    if (!baseShowInfoStore.pathTreeInfoBool) {
+        await new Promise<void>(resolve => {
+            const checkPathTreeInfo = () => {
+                if (baseShowInfoStore.pathTreeInfoBool) {
+                    resolve();
+                } else {
+                    setTimeout(checkPathTreeInfo, 100);
+                }
+            };
+            checkPathTreeInfo();
+        });
+    }
+
+    // 等待 HandleSecret.getMd5() 返回有效值
+    if (!HandleSecret.getMd5()) {
+        await new Promise<void>(resolve => {
+            const checkMd5 = () => {
+                if (HandleSecret.getMd5()) {
+                    resolve();
+                } else {
+                    setTimeout(checkMd5, 100);
+                }
+            };
+            checkMd5();
+        });
+    }
+
     const fileDetails: FileDetail = baseShowInfoStore.currentResourceInfo;
     if (!fileDetails) {
         notification.error('资源不存在');
