@@ -23,10 +23,23 @@ export interface BaseInterface {
   init: () => void;
 }
 
+// 清理上次生成的接口文件（保留 update_time.json，保证加密目录稳定）
+function cleanGeneratedFiles() {
+  if (!fs.existsSync(apiDir.root)) return;
+
+  fs.readdirSync(apiDir.root).forEach((name) => {
+    if (name === "update_time.json") return;
+    fs.rmSync(path.join(apiDir.root, name), { recursive: true, force: true });
+  });
+}
+
 // 生成静态文件的逻辑
 function generateStaticFiles() {
   // 确保输出目录存在
   existsDir();
+
+  // 清理旧产物，避免加密目录与索引文件堆积
+  cleanGeneratedFiles();
 
   // 初始化更新时间
   gutf.init();

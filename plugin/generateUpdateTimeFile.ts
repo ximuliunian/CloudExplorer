@@ -17,6 +17,10 @@ let gutf: GUTF = {} as GUTF;
 gutf.file_name = "update_time.json";
 
 gutf.init = () => {
+    // 已存在则直接复用，避免开发阶段每次改动都更换加密目录
+    const filePath = path.resolve(apiDir.root, gutf.file_name);
+    if (fs.existsSync(filePath)) return;
+
     // 准备内容数据
     const time = new Date().getTime()
     const key = Md5Util.compute(`${time}#${secretKey}`)

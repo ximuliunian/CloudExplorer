@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import type SearchList from '@/types/SearchList';
 import HandleSecret from '@/hooks/handle/HandleSecret';
 import { useRouter } from 'vue-router';
@@ -73,11 +73,18 @@ let debounceTimer: number | null = null;    // 防抖定时器
 const router = useRouter() // 路由实例
 const baseShowInfoStore = useBaseShowInfoStore();
 
-onMounted(async () => {
-    // 初始化输入框引用
-    searchInput.value = document.querySelector('#searchInput') as HTMLInputElement;
+onMounted(() => {
     // 添加全局点击事件监听器
     document.addEventListener('click', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+    // 清理防抖定时器与事件监听，避免卸载后继续执行
+    if (debounceTimer !== null) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+    }
+    document.removeEventListener('click', handleDocumentClick);
 });
 
 // 全局点击事件处理
@@ -140,10 +147,18 @@ const handleInput = () => {
     }, 300);
 };
 
+// 搜索索引更新后刷新结果（例如秘笈验证成功后）
+watch(
+    () => baseShowInfoStore.searchInfoBool,
+    ready => {
+        if (ready && searchQuery.value.trim()) handleInput()
+    }
+);
+
 // 搜索按钮点击事件
-const handleSearch = () => {
+const handleSearch = async () => {
     if (searchQuery.value.trim()) {
-        HandleSecret.checkSecret(searchQuery.value)
+        await HandleSecret.checkSecret(searchQuery.value)
         handleInput();
 
         // 保持输入框焦点
@@ -178,11 +193,14 @@ const selectSuggestion = (item: SearchList) => {
     }
 };
 
+// 转义正则表达式特殊字符
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // 高亮匹配文本
 const highlightMatch = (text: string, query: string) => {
     if (!query) return text;
 
-    const regex = new RegExp(`(${query})`, 'gi');
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
     return text.replace(regex, '<span class="highlight">$1</span>');
 };
 

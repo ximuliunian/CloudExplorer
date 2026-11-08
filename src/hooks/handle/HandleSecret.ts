@@ -63,49 +63,82 @@ function registerCheckSuccessCallback(name: string, callback: checkSuccessCallba
     }
 }
 
+// 更新数据加载状态
+let updateDataReady: Promise<void> | null = null
+
+/**
+ * 加载更新时间数据
+ */
+const loadUpdateData = async () => {
+    try {
+        const data = (await getUpdateTimeFile()).data as UpdateTimeData;
+        updateData.updateId = data.updateId
+        updateData.updateTime = data.updateTime
+    } catch (error) {
+        console.error('秘笈配置加载失败:', error)
+        checked.isChecked = true;   // 加载失败时不阻塞其余页面
+        return
+    }
+
+    // 获取存储在 cookie 中的 secret 值，如果为空则不执行
+    const secret = CookieUtil.getCookie('secret')
+    if (!secret) {
+        checked.isChecked = true;
+        return;
+    }
+
+    // 判断秘籍是否正确
+    const updateId = Md5Util.compute(`${updateData.updateTime}#${secret}`)
+    const isChecked = updateData.updateId === updateId
+    checked.checkResult = isChecked;    // 存储验证结果
+    if (!isChecked) {
+        checked.isChecked = true;   // 设置状态为已验证
+        return
+    };
+
+    // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
+    const resultMd5 = Md5Util.compute(`${updateData.updateId}#${secret}`)
+    checked.md5 = resultMd5;
+    checkSuccessCallbackList.forEach(callback => {
+        try {
+            callback.callback(resultMd5)
+        } catch (error) {
+            console.error(`秘笈校验回调 ${callback.name} 执行失败:`, error)
+        }
+    })
+    checked.isChecked = true;   // 设置状态为已验证
+}
+
 /**
  * 秘笈 - 初始化
  */
 const init = () => {
-    onMounted(async () => {
-        // 更新数据
-        const data = (await getUpdateTimeFile()).data as UpdateTimeData;
-        updateData.updateId = data.updateId
-        updateData.updateTime = data.updateTime
-
-        // 获取存储在 cookie 中的 secret 值，如果为空则不执行
-        const secret = CookieUtil.getCookie('secret')
-        if (!secret) {
-            checked.isChecked = true;
-            return;
-        }
-
-        // 判断秘籍是否正确
-        const updateId = Md5Util.compute(`${updateData.updateTime}#${secret}`)
-        const isChecked = updateData.updateId === updateId
-        checked.checkResult = isChecked;    // 存储验证结果
-        if (!isChecked) {
-            checked.isChecked = true;   // 设置状态为已验证
-            return
-        };
-
-        // 走到这一步说明秘籍正确，则修改 checked 的状态和调用回调函数
-        const resultMd5 = Md5Util.compute(`${updateData.updateId}#${secret}`)
-        checked.md5 = resultMd5;
-        checkSuccessCallbackList.forEach(callback => callback.callback(resultMd5))
-        checked.isChecked = true;   // 设置状态为已验证
+    onMounted(() => {
+        updateDataReady = loadUpdateData()
     })
 }
 
 // 手动验证秘籍
-const checkSecret = (secret: string) => {
+const checkSecret = async (secret: string) => {
+    // 等待配置加载完成，避免使用空数据计算 MD5
+    if (updateDataReady) await updateDataReady
+    if (!updateData.updateId) return
+
     const key = Md5Util.compute(`${updateData.updateTime}#${secret}`)
     const updateId = Md5Util.compute(`${updateData.updateTime}#${key}`)
     if (updateData.updateId !== updateId) return;
     CookieUtil.setCookie('secret', key, Number(import.meta.env.SECRET_EXPIRES))
     const md5 = Md5Util.compute(`${updateData.updateId}#${key}`)
     checked.md5 = md5;
-    checkSuccessCallbackList.forEach(callback => callback.callback(md5))
+    checked.checkResult = true;
+    checked.isChecked = true;
+    checkSuccessCallbackList.forEach(callback => {
+        try {
+            callback.callback(md5)
+        } catch (error) {
+            console.error(`秘笈校验回调 ${callback.name} 执行失败:`, error)
+        }
+    })
 }
 
 export default {

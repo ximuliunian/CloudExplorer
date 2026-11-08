@@ -79,7 +79,8 @@ const fetchDisclaimer = async () => {
         // 按行分割Markdown内容
         disclaimerLines.value = response.data.split('\n');
         // 检查是否包含<!DOCTYPE html>，如果没有则显示免责声明
-        if (disclaimerLines.value[0].indexOf('<!DOCTYPE html>') === -1) {
+        const firstLine = disclaimerLines.value[0] || '';
+        if (firstLine.indexOf('<!DOCTYPE html>') === -1) {
             showDialog.value = true;
         }
     } catch (err) {

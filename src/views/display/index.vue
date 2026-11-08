@@ -292,56 +292,94 @@ const checkViewport = () => {
     isMobileView.value = window.innerWidth < 768;
 };
 
+// 数据是否已就绪
+const isDataReady = () =>
+    HandleSecret.isChecked() &&
+    baseShowInfoStore.pathTreeInfoBool &&
+    baseShowInfoStore.searchInfoBool
+
+// 内容请求序号，用于丢弃已被后发请求取代的响应
+let contentRequestId = 0
+// 组件是否已卸载，避免卸载后继续提示或跳转
+let isUnmounted = false
+
 // 获取数据内容
-const getContent = async () => {
-    // 等待 HandleSecret.isChecked() 返回有效值
-    if (!HandleSecret.isChecked()) {
-        await new Promise<void>(resolve => {
-            const checkIsChecked = () => {
-                if (HandleSecret.isChecked()) {
-                    resolve();
+const getContent = async (requestId: number) => {
+    // 等待秘笈状态与路径、搜索索引全部就绪，最多等待 10 秒
+    if (!isDataReady()) {
+        const ready = await new Promise<boolean>(resolve => {
+            let retry = 0
+            const check = () => {
+                if (isUnmounted || requestId !== contentRequestId) {
+                    resolve(false)
+                } else if (isDataReady()) {
+                    resolve(true)
+                } else if (retry >= 100) {
+                    resolve(false)
                 } else {
-                    setTimeout(checkIsChecked, 100);
+                    retry++
+                    setTimeout(check, 100)
                 }
-            };
-            checkIsChecked();
-        });
+            }
+            check()
+        })
+        if (isUnmounted || requestId !== contentRequestId) return
+        if (!ready) {
+            notification.error('数据加载失败，请刷新后重试')
+            goBack()
+            return
+        }
     }
 
-    // 等待 pathTreeInfoBool 完成初始化
-    if (!baseShowInfoStore.pathTreeInfoBool) {
-        await new Promise<void>(resolve => {
-            const checkPathTreeInfo = () => {
-                if (baseShowInfoStore.pathTreeInfoBool) {
-                    resolve();
-                } else {
-                    setTimeout(checkPathTreeInfo, 100);
-                }
-            };
-            checkPathTreeInfo();
-        });
-    }
+    if (isUnmounted || requestId !== contentRequestId) return
 
     const fileDetails: FileDetail = baseShowInfoStore.currentResourceInfo;
     if (!fileDetails) {
-        notification.error('资源不存在');
-        goBack();
+        if (requestId === contentRequestId) {
+            notification.error('资源不存在');
+            goBack();
+        }
         return;
     }
 
-    return fileDetails?.is_secret
+    const result = await (fileDetails?.is_secret
         ? getSecretFile(fileDetails.json_name, HandleSecret.getMd5())
-        : getFile(fileDetails!.json_name)
+        : getFile(fileDetails!.json_name))
+
+    // 请求返回时已卸载或已有更新的请求，丢弃本次结果
+    if (isUnmounted || requestId !== contentRequestId) return
+
+    return result
+}
+
+// 加载当前路由对应的内容
+const loadRouteContent = async () => {
+    const requestId = ++contentRequestId
+    try {
+        const result = await getContent(requestId)
+        if (isUnmounted || requestId !== contentRequestId) return
+        content.value = result?.data
+    } catch (error) {
+        // 请求异常时避免产生未处理的 Promise 拒绝
+        if (isUnmounted || requestId !== contentRequestId) return
+        console.error('资源内容加载失败:', error)
+        content.value = undefined
+        notification.error('资源加载失败，请稍后重试')
+    }
 }
 
 // 根据内容自动选择视图模式
 onMounted(async () => {
-    content.value = (await getContent())?.data;
     // 如果地址栏目标变量需要刷新重新获取数据
     HandleRouter.registerPathChangeCallback('urlFileInfoChange', async pathList => {
-        if (!pathList[pathList.length - 1].endsWith('.f')) return
-        content.value = (await getContent())?.data;
+        if (pathList.length === 0 || !pathList[pathList.length - 1].endsWith('.f')) return
+        await loadRouteContent()
     });
+
+    await loadRouteContent();
+
+    // 等待期间组件可能已被卸载，避免卸载后仍注册监听
+    if (isUnmounted) return;
 
     checkViewport();
     window.addEventListener('resize', checkViewport);
@@ -357,7 +395,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+    isUnmounted = true;
+    contentRequestId++;   // 使进行中的加载请求全部失效
     window.removeEventListener('resize', checkViewport);
+    HandleRouter.unregisterPathChangeCallback('urlFileInfoChange')
 });
 </script>
 

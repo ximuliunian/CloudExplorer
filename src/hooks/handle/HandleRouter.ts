@@ -1,4 +1,4 @@
-import { onMounted, reactive, ref, watch } from "vue";
+import { reactive, ref, watch } from "vue";
 import {
   useRoute,
   useRouter,
@@ -48,7 +48,11 @@ watch(
       const pathList: string[] = decodeURIComponent(newData || "")
         .split("/")
         .filter((item) => item !== "");
-      callback.callback(pathList ? pathList : [], newData, oldData);
+      try {
+        callback.callback(pathList, newData, oldData);
+      } catch (error) {
+        console.error(`路由回调 ${callback.name} 执行失败:`, error);
+      }
     });
   },
 );
@@ -68,11 +72,28 @@ function registerPathChangeCallback(name: string, callback: pathChangeType) {
 }
 
 /**
+ * 注销 地址栏更改 回调函数
+ * @param name 回调函数名称
+ */
+function unregisterPathChangeCallback(name: string) {
+  const index = pathChangeCallbackList.findIndex(item => item.name === name)
+  if (index !== -1) {
+    pathChangeCallbackList.splice(index, 1)
+  }
+}
+
+/**
  * 获取地址栏路径参数
  * @returns 参数列表
  */
 const getUrlParams = (): string[] => {
-  return route.value?.params.urlParams as string[];
+  const params = route.value?.params.urlParams;
+  // 可重复参数在没有任何匹配时会返回空字符串，统一归一化为数组，避免调用方展开后得到字符
+  if (Array.isArray(params)) return params as string[];
+  if (typeof params === "string" && params !== "") {
+    return params.split("/").filter((item) => item !== "");
+  }
+  return [];
 };
 
 /**
@@ -87,15 +108,16 @@ const getFileName = (): string => {
  * 路由 - 初始化
  */
 const init = () => {
-  onMounted(() => {
-    route.value = useRoute(); // 获取路由信息
-    router.value = useRouter(); // 获取路由对象
-  });
+  // 在 setup 阶段同步获取路由，避免子组件先于 onMounted 读取到空路由信息
+  route.value = useRoute(); // 获取路由信息
+  router.value = useRouter(); // 获取路由对象
 };
 
 export default {
   init,
   registerPathChangeCallback,
+  unregisterPathChangeCallback,
   getUrlParams,
   getFileName,
+  getRoute,
 };

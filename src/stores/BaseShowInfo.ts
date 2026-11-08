@@ -13,6 +13,10 @@ interface FileDetailState {
     searchInfoBool: boolean; // 搜索信息是否初始化
 }
 
+// 请求序号，用于丢弃已被后发请求取代的响应，避免旧数据覆盖新数据
+let pathTreeRequestId = 0;
+let searchInfoRequestId = 0;
+
 export const useBaseShowInfoStore = defineStore('base_show_info', {
     state: (): FileDetailState => ({
         pathTreeInfo: {
@@ -36,6 +40,7 @@ export const useBaseShowInfoStore = defineStore('base_show_info', {
     actions: {
         // 初始化路径数信息
         async initPathTreeInfo(md5?: string) {
+            const requestId = ++pathTreeRequestId;
             let data: PathTree;
 
             if (md5) {
@@ -44,6 +49,9 @@ export const useBaseShowInfoStore = defineStore('base_show_info', {
                 data = (await getPath()).data
             }
 
+            // 已有更新的请求发出，丢弃本次响应
+            if (requestId !== pathTreeRequestId) return;
+
             this.pathTreeInfo.children = data.children || [];
             this.pathTreeInfo.files = data.files || [];
             this.pathTreeInfoBool = true;
@@ -51,6 +59,7 @@ export const useBaseShowInfoStore = defineStore('base_show_info', {
 
         // 初始化搜索信息
         async initSearchInfo(md5?: string) {
+            const requestId = ++searchInfoRequestId;
             let data: SearchList[];
 
             if (md5) {
@@ -58,6 +67,9 @@ export const useBaseShowInfoStore = defineStore('base_show_info', {
             } else {
                 data = (await getSearch()).data
             }
+
+            // 已有更新的请求发出，丢弃本次响应
+            if (requestId !== searchInfoRequestId) return;
 
             this.searchInfo = data;
             this.searchInfoBool = true;
@@ -70,6 +82,6 @@ export const initBaseShowInfo = (md5?: string) => {
     const baseShowInfoStore = useBaseShowInfoStore();
     baseShowInfoStore.pathTreeInfoBool = false;
     baseShowInfoStore.searchInfoBool = false;
-    baseShowInfoStore.initPathTreeInfo(md5);
-    baseShowInfoStore.initSearchInfo(md5);
+    baseShowInfoStore.initPathTreeInfo(md5).catch(error => console.error('路径树信息加载失败:', error));
+    baseShowInfoStore.initSearchInfo(md5).catch(error => console.error('搜索信息加载失败:', error));
 }

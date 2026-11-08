@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import type PathTree from '@/types/PathTree';
 import type { FileDetail } from '@/types/PathTree';
 import { useRouter } from 'vue-router';
@@ -42,7 +42,6 @@ import ListView from './subcomponents/ListView.vue';
 import TilesView from './subcomponents/TilesView.vue';
 import StatusBar from './subcomponents/StatusBar.vue';
 import { useBaseShowInfoStore } from '@/stores/BaseShowInfo';
-import HandleSecret from '@/hooks/handle/HandleSecret';
 
 // 路由
 const router = useRouter();
@@ -161,13 +160,17 @@ const loadContent = async () => {
     }
 };
 
+// 索引数据就绪或秘笈验证后重新加载当前目录
+watch(
+    () => baseShowInfoStore.pathTreeInfoBool,
+    ready => {
+        if (ready) loadContent()
+    }
+);
+
 // 初始化加载根目录内容
 onMounted(async () => {
     HandleRouter.registerPathChangeCallback('urlPathChange', processPathChange)
-    HandleSecret.registerCheckSuccessCallback('checkSuccessUpdateDataDisplayView', async MD5 => {
-        await baseShowInfoStore.initPathTreeInfo(MD5);
-        await loadContent()
-    })
 
     loading.value = true;
     await loadContent(); // 直接调用loadContent加载内容
@@ -175,8 +178,14 @@ onMounted(async () => {
     await processPathChange(HandleRouter.getUrlParams()); // 加载完成后处理当前路由
 });
 
+onBeforeUnmount(() => {
+    HandleRouter.unregisterPathChangeCallback('urlPathChange')
+});
+
 // 处理路由变化的实际逻辑
 const processPathChange = async (pathList: string[]) => {
+    // 仅响应首页路由，避免跳转到详情页 / 新增页时清空当前目录
+    if (HandleRouter.getRoute()?.name !== 'home') return;
     if (!pathList) return;
     breadcrumb.value = [breadcrumb.value[0], ...pathList]
     loadContent();

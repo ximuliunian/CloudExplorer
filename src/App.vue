@@ -44,23 +44,39 @@ onMounted(() => {
 
 /**
  * 处理背景图片
+ * @param retry 当前重试次数
  */
-async function handleBackImage() {
-    // 获取背景图片
-    const imgList = await imgApi();
-    const size = Math.floor(Math.random() * imgList.data.length)
-    let imgInfo = imgList.data[size]
-    if (imgInfo.indexOf('http') == -1) {
-        backImage.value = location.origin + imgList.data[size]
-    } else {
-        backImage.value = imgInfo
-    }
+async function handleBackImage(retry = 0) {
+    try {
+        // 获取背景图片
+        const imgList = await imgApi();
+        const list = Array.isArray(imgList.data) ? imgList.data : [];
+        if (list.length === 0) {
+            loadingFlag.value = true;   // 没有背景图时直接结束加载
+            return;
+        }
 
-    // 背景图片加载判断
-    const imageLoad = new Image();
-    imageLoad.src = backImage.value;
-    imageLoad.onload = () => loadingFlag.value = true    // 加载成功
-    imageLoad.onerror = () => handleBackImage();    // 加载失败重新加载
+        const imgInfo: string = list[Math.floor(Math.random() * list.length)];
+        const imgUrl = imgInfo.indexOf('http') === -1 ? location.origin + imgInfo : imgInfo;
+
+        // 背景图片加载判断
+        const imageLoad = new Image();
+        imageLoad.onload = () => {
+            backImage.value = imgUrl;
+            loadingFlag.value = true;   // 加载成功
+        };
+        imageLoad.onerror = () => {
+            if (retry < 2) {
+                handleBackImage(retry + 1); // 加载失败有限次重试
+            } else {
+                loadingFlag.value = true;
+            }
+        };
+        imageLoad.src = imgUrl;
+    } catch (error) {
+        console.error('背景图片加载失败:', error);
+        loadingFlag.value = true;   // 接口异常时结束加载
+    }
 }
 
 </script>
