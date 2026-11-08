@@ -9,7 +9,7 @@ export let secretKey: string;
 // API 生成目录
 export enum apiDirPath {
   root = "../dist/api", // 根目录
-  rootDev = "../../public/api", // 根目录 - 开发阶段
+  rootDev = "../public/api", // 根目录 - 开发阶段
 }
 
 // API 生成目录对象
@@ -74,7 +74,7 @@ export default (secret: string) => {
     // 开发阶段监听文件变化并重新生成文件
     configureServer(server: any) {
       // 开发阶段监听文件变化并重新生成文件
-      const sourceDir = path.resolve(__dirname, "../../source");
+      const sourceDir = path.resolve(__dirname, "../source");
       server.watcher.on("all", (event: any, filePath: any) => {
         if (filePath.startsWith(sourceDir) && filePath.endsWith(".json")) {
           generateStaticFiles();

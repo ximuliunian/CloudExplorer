@@ -28,7 +28,7 @@ const buildPathTree = (is_all: boolean) => {
     const stackSpace: PathTree[] = [{ name: "source", children: [], files: [] }];  // 栈空间
     const searchPath: SearchList[] = [];  // 查询路径
 
-    findAndReadJsonFiles("../../source/", (type, name, data) => {
+    findAndReadJsonFiles("../source/", (type, name, data) => {
         const spiltPathName = spiltPath(name);  // 路径末端内容
 
         switch (type) {

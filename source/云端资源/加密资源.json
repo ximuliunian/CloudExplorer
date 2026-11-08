@@ -1,0 +1,22 @@
+{
+  "is_secret": true,
+  "type": "file",
+  "title": "加密资源示例",
+  "summary": "需要输入秘笈后才能访问的隐藏资源",
+  "description": [
+    "该资源设置了 `is_secret: true`。",
+    "",
+    "在首页搜索框输入 `.env` 中配置的 `SECRET_KEY`（默认 `cloud-explorer`）并点击搜索，验证通过后即可看到本资源。"
+  ],
+  "file_url": [
+    {
+      "title": "隐藏链接",
+      "content": [
+        {
+          "name": "示例链接",
+          "url": "https://example.com/"
+        }
+      ]
+    }
+  ]
+}

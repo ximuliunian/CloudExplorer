@@ -7,11 +7,11 @@ import indexPlugin from "./plugin/indexPlugin";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-    const envDir = `${process.cwd()}/../`
+    const envDir = process.cwd()
     const env = loadEnv(mode, envDir, '')
 
     return {
-        publicDir: '../public',
+        publicDir: 'public',
         envDir: envDir,
         plugins: [
             vue(),

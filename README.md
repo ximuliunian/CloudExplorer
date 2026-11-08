@@ -6,65 +6,42 @@
 
 ## 如何使用
 
-> 前置条件：需要安装 Git 环境
-
-首先在本地创建一个目录（这里暂且叫它 root），然后在目录下执行以下命令
+> 前置条件：Node.js 18+、pnpm
 
 ```bash
-# 初始化项目
-git init
+# 安装依赖
+pnpm install
 
-# 拉取本项目为子模块
-git submodule add https://github.com/ximuliunian/CloudExplorer.git CloudExplorer
-
-# 初始化和更新子模块
-git submodule update --init --recursive
+# 启动开发服务器
+pnpm dev
 ```
 
-> 如果本项目更新了，但是子模块是不会自己更新的，需要手动更新子模块
->
-> ```bash
-> # 更新子模块（尝试合并）
-> git submodule update --remote --merge CloudExplorer
->
-> # 如果你在子模块中有本地修改或提交，使用以上命令不会被丢弃，而是尝试自动合并
-> # 如果合并失败，你可能需要手动解决冲突，如果不想或者不会解决冲突，你可以使用以下命令
-> # 强制更新子模块（丢弃本地修改和提交）
-> git submodule update --remote CloudExplorer
-> ```
->
-> 每次更新子模块之前需要先来本仓库中查看一下是否对配置做了更新，该怎么配置这些更新的内容。做好准备后再更新子模块
-
-然后再根目录（root）中创建一个以下结构的目录和文件
+启动后访问终端输出的地址（默认 `http://localhost:5173`）。项目已内置运行所需的 `.env`、`public`、`source`，无需额外准备上级目录。
 
 ```txt
-root:
-│  .env  # 环境变量文件
-│  .gitignore    # Git 忽略文件
+CloudExplorer:
+│  .env          # 环境变量
 │
-├─CloudExplorer  # 子模块目录
-│      ......
-│
-├─public    # 静态资源目录
-│  │  favicon.ico    # 网站图标（替换为自己的网站图标）
-│  │
-│  └─image  # 图片目录
+├─public         # 静态资源目录
+│  │  favicon.svg    # 网站图标
+│  │  disclaimer.md  # 免责声明（可选）
+│  └─image
 │      └─background  # 背景图片目录
-│              xxx.jpg  # 背景图片（多个）
+│              bg-1.svg  # 背景图片
 │              index.json    # 背景图片索引文件
 │
-└─source    # 分享资源源目录
+└─source         # 分享资源源目录
 ```
 
-至此准备工作就完成了，接下来进行配置项目
+> `public/api` 目录由开发服务器和构建过程自动生成，已加入 `.gitignore`，无需手动维护。
 
 ### 配置项目（环境配置）
 
-打开根目录（root）中的 .env 文件，添加以下内容
+打开项目根目录中的 `.env` 文件，按需修改以下内容
 
 ```bash
 # 站点logo
-VITE_FAVICON = "/favicon.ico"
+VITE_FAVICON = "/favicon.svg"
 # 站点标题
 VITE_TITLE = ""
 # 站点描述
@@ -73,82 +50,84 @@ VITE_DESCRIPTION = ""
 VITE_KEYWORDS = ""
 
 # 秘笈
-SECRET_KEY = ""
+SECRET_KEY = "cloud-explorer"
 # 秘笈过期时间（单位：天）
-SECRET_EXPIRES =
+SECRET_EXPIRES = 7
 ```
 
-上面的配置项中以 `VITE_` 开头的配置项是 Vite 提供的配置项，用于配置项目的一些基本信息，按部就班的填写即可；`SECRET_KEY` 是一个密码，在 分享资源 的 JSON 中有一个名为 `is_secret` 的字段，如果这个字段的值为 `true` ，那么这个资源就不会直接的展示在首页中，只有在验证密码后才能展示和访问这个资源。而 `SECRET_EXPIRES` 是一个缓存密钥的期限。
+以 `VITE_` 开头的配置项用于配置站点基本信息。`SECRET_KEY` 是访问隐藏资源的密码：分享资源的 JSON 中 `is_secret` 为 `true` 时，该资源不会直接展示在首页，只有在验证密码后才能展示和访问。`SECRET_EXPIRES` 是密钥的缓存期限（天）。
 
-验证方式是在主页的搜索框中输入密码，然后点击搜索按钮进行验证。如果验证成功，那么就会访问隐藏资源，如果验证失败，则是什么都不会做。每次验证成功后都会有 `SECRET_EXPIRES` 天的缓存期，缓存期过后就需要重新验证密码。
+验证方式是在主页的搜索框中输入密码，然后点击搜索按钮。验证成功后即可看到隐藏资源，并按 `SECRET_EXPIRES` 天缓存验证结果。
 
-### 配置项目（Git 忽略文件）
+### 配置项目（背景图片）
 
-打开根目录（root）中的 .gitignore 文件，添加以下内容
-
-```bash
-/public/api
-```
-
-通过 `pnpm run dev` 命令启动项目后会在 public 目录下生成一个 api 目录，这个目录是用于存放请求 API 数据的，这个目录中的数据如果存在则会在打包时出现文件重复的问题，所以需要将这个目录添加到 Git 忽略文件中。
-
-### 配置项目（静态资源）
-
-打开根目录（root）中的 public/image/background 目录，将自己的背景图片复制到这个目录中，然后在这个目录中打开 index.json 文件，添加如下格式的 JSON 注册上背景图片
+将背景图片放入 `public/image/background/` 目录，并在同目录的 `index.json` 中注册
 
 ```json
 [
     "/image/background/1.jpg",
     "/image/background/2.jpg",
-    "/image/background/3.jpg",
-    "/image/background/4.jpg",
-    "/image/background/5.jpg",
+    "https://example.com/background.jpg"
 ]
 ```
 
-以上只是一个示例，你可以根据自己的需要添加更多的背景图片，然后在 index.json 文件中注册上这些背景图片。前面的 `/image/background/` 是固定的，后面的 `1.jpg` 是你自己的背景图片的文件名。
-
-或者也可以使用网络位置的图片作为背景图片，只需要在 index.json 文件中注册上图片的 URL 即可。
+既可以使用本地图片（路径以 `/image/background/` 开头），也可以直接填写网络图片地址。
 
 ### 配置项目（分享资源源目录）
 
-打开根目录（root）中的 source 目录，将自己的 分享资源（JSON） 复制到这个目录中即可，项目会自动扫描这个目录中的所有 分享资源（JSON）。
+将分享资源（JSON）放入 `source` 目录即可，项目会自动扫描该目录中的所有 JSON 文件。
 
-source 中的文件夹最终也会作为一个目录展示在项目中，目录名称就是文件夹的名称。资源文件（JSON） 会以文件中的 `title` 字段作为资源的名称展示在项目中。
+`source` 中的文件夹会作为目录展示，目录名称就是文件夹名称；资源文件会以 JSON 中的 `title` 字段作为名称展示。
 
-> 注意：资源文件（JSON） 中的 `title` 字段建议不要重复，否则会出现资源名称重复的情况
-> 在你部署完成后或者本地启动本项目后可以通过 `[部署或本机地址]/add` （例如：`https://example.com/add`）的网址来进入添加资源的页面
+文件类型资源示例（`type` 为 `file`）：
+
+```json
+{
+    "is_secret": false,
+    "type": "file",
+    "title": "资源名称",
+    "cover": "/image/cover.png",
+    "summary": "简介",
+    "description": ["支持 Markdown 的多行介绍"],
+    "file_url": [
+        {
+            "title": "分组名称",
+            "content": [
+                { "name": "链接名称", "url": "https://example.com" }
+            ]
+        }
+    ]
+}
+```
+
+URL 类型资源示例（`type` 为 `url`，点击后直接打开链接）：
+
+```json
+{
+    "is_secret": false,
+    "type": "url",
+    "title": "资源名称",
+    "url": "https://example.com"
+}
+```
+
+> 注意：资源文件中的 `title` 字段建议不要重复，否则会出现资源名称冲突。
+>
+> 也可以访问 `[部署或本机地址]/add`（例如 `http://localhost:5173/#/add`）进入可视化添加资源页面，生成 JSON 后放入 `source` 目录。
 
 ### 免责声明
 
-在 `public` 目录中创建一个名为 `disclaimer.md` 的文件，在这个文件中就可以书写对应的条款。如果没有这个文件，则不会弹出声明框
+在 `public` 目录中创建名为 `disclaimer.md` 的文件并书写对应条款，首次访问时会弹出声明框；删除该文件则不会弹出。
 
-## Vercel 部署
+## 构建与部署
 
-> 不管通过什么部署，选项中项目的根目录一定要是拉取的 Git 的子模块
->
-> 部署之前把内容代码上传到 GitHub
+```bash
+# 类型检查并构建
+pnpm build
+```
 
-通过 GitHub 登录之后进入主页面
+构建产物输出到 `dist`。构建前会自动清理 `public/api`，并在 `dist/api` 中生成接口数据，部署时直接部署 `dist` 目录即可。
 
-![image-20250624193753698](md.image/README/image-20250624193753698.png)
+若使用 Vercel / Cloudflare Pages 等平台，框架预设选择 `Vite`，项目根目录选择本项目根目录，构建命令 `pnpm build`，输出目录 `dist`。
 
-点击 Add New... >> Project
-
-![image-20250624193956507](md.image/README/image-20250624193956507.png)
-
-在以上位置选择对应的存储库，然后点击 `Import`，进入以下页面
-
-![image-20250624194303943](md.image/README/image-20250624194303943.png)
-
-之后找到红框框选的部分，这里就是决定项目根目录的。点击 `Edit` 选择对应的目录，然后上面的 `Framework Preset` 应该会自己变为 `Vite`
-
-> 如果找不到对应的子模块文件夹，直接部署即可。到之后去部署项目的设置中手动填写子模块名称
-
-![image-20250624194447025](md.image/README/image-20250624194447025.png)
-
-如果没变则需要手动选择，然后选择下面的 `Build and Output Settings` ，按照下如填写
-
-![image-20250624205204250](md.image/README/image-20250624205204250.png)
-
-至此 Vercel 部署完成，其他的部署方式，比如 `Cloudflare Pages` 跟 Vercel 部署一样，都是需要设置一下根目录和构建方式
+> 部署前请务必修改 `.env` 中的 `SECRET_KEY`，避免使用默认示例密码。
